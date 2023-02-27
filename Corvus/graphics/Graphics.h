@@ -57,6 +57,25 @@ namespace Corvus::gl
 	void Clear(CLEAR_BIT bit);
 	void ClearColor(float32 r, float32 g, float32 b, float32 a);
 	void Viewport(int32 x, int32 y, int32 width, int32 height);
+	enum FACE
+	{
+		FACE_FRONT_LEFT = GL_FRONT_LEFT,
+		FACE_FRONT_RIGHT = GL_FRONT_RIGHT,
+		FACE_BACK_LEFT = GL_BACK_LEFT,
+		FACE_BACK_RIGHT = GL_BACK_RIGHT,
+		FACE_FRONT = GL_FRONT,
+		FACE_BACK = GL_BACK,
+		FACE_LEFT = GL_LEFT,
+		FACE_RIGHT = GL_RIGHT,
+		FACE_FRONT_AND_BACK = GL_FRONT_AND_BACK,
+	};
+	enum POLYGON_MODE
+	{
+		POLYGON_MODE_POINT = GL_POINT,
+		POLYGON_MODE_LINE = GL_LINE,
+		POLYGON_MODE_FILL = GL_FILL,
+	};
+	void PolygonMode(FACE face, POLYGON_MODE mode);
 
 	enum DRAW_MODE
 	{
@@ -70,7 +89,7 @@ namespace Corvus::gl
 
 	};
 	void DrawArrays(DRAW_MODE mode, int32 first, int32 count);
-
+	void DrawIndexed(DRAW_MODE mode, int32 count, DATA_TYPE dataType, const void* indices);
 
 	uint32 CreateVertexArray();
 	void BindVertexArray(const uint32& id);
@@ -123,5 +142,77 @@ namespace Corvus::gl
 	void SetUniformVec3(const uint32& location, const glm::vec3& data);
 	void SetUniformVec4(const uint32& location, const glm::vec4& data);
 	void SetUniformMat4(const uint32& location, const glm::mat4& data, bool32 normalized);
+
+	enum TEXTURE_TYPE
+	{
+		TEXTURE_TYPE_1D = GL_TEXTURE_1D,
+		TEXTURE_TYPE_2D = GL_TEXTURE_2D,
+		TEXTURE_TYPE_1D_ARRAY = GL_TEXTURE_1D_ARRAY,
+		TEXTURE_TYPE_2D_ARRAY = GL_TEXTURE_2D_ARRAY,
+		TEXTURE_TYPE_CUBE_MAP = GL_TEXTURE_CUBE_MAP
+	};
+	enum TEXTURE_FILTER_PNAME
+	{
+		TEXTURE_FILTER_MAG_FILTER = GL_TEXTURE_MAG_FILTER,
+		TEXTURE_FILTER_MIN_FILTER = GL_TEXTURE_MIN_FILTER,
+	};
+	enum TEXTURE_FILTER_PARAM
+	{
+		TEXTURE_FILTER_NEAREST = GL_NEAREST,
+		TEXTURE_FILTER_LINEAR = GL_LINEAR,
+		TEXTURE_FILTER_NEAREST_MIPMAP_NEAREST = GL_NEAREST_MIPMAP_NEAREST,
+		TEXTURE_FILTER_LINEAR_MIPMAP_NEAREST = GL_LINEAR_MIPMAP_NEAREST,
+		TEXTURE_FILTER_NEAREST_MIPMAP_LINEAR = GL_NEAREST_MIPMAP_LINEAR,
+		TEXTURE_FILTER_LINEAR_MIPMAP_LINEAR = GL_LINEAR_MIPMAP_LINEAR,
+	};
+	enum TEXTURE_WRAP_PNAME
+	{
+		TEXTURE_WRAP_S = GL_TEXTURE_WRAP_S,
+		TEXTURE_WRAP_T = GL_TEXTURE_WRAP_T,
+		TEXTURE_WRAP_R = GL_TEXTURE_WRAP_R,
+	};
+	enum TEXTURE_WRAP_PARAM
+	{
+		TEXTURE_WRAP_REPEAT = GL_REPEAT,
+		TEXTURE_WRAP_MIRRORED_REPEAT = GL_MIRRORED_REPEAT,
+		TEXTURE_WRAP_CLAMP_TO_EDGE = GL_CLAMP_TO_EDGE,
+	};
+	enum TEXTURE_FORMAT
+	{
+		TEXTURE_FORMAT_RGB = GL_RGB,
+		TEXTURE_FORMAT_RGBA = GL_RGBA,
+	};
+	struct TextureParameter
+	{
+		TEXTURE_FILTER_PARAM filterMin = TEXTURE_FILTER_LINEAR;
+		TEXTURE_FILTER_PARAM filterMag = TEXTURE_FILTER_LINEAR;
+
+		TEXTURE_WRAP_PARAM wrap_s = TEXTURE_WRAP_CLAMP_TO_EDGE;
+		TEXTURE_WRAP_PARAM wrap_t = TEXTURE_WRAP_CLAMP_TO_EDGE;
+		TEXTURE_WRAP_PARAM wrap_r = TEXTURE_WRAP_CLAMP_TO_EDGE;
+
+		TextureParameter() = default;
+		TextureParameter(
+			TEXTURE_FILTER_PARAM filterMin,
+			TEXTURE_FILTER_PARAM filterMag,
+			TEXTURE_WRAP_PARAM wrap_s,
+			TEXTURE_WRAP_PARAM wrap_t,
+			TEXTURE_WRAP_PARAM wrap_r) :
+			filterMin(filterMin),
+			filterMag(filterMag),
+			wrap_s(wrap_s),
+			wrap_t(wrap_t),
+			wrap_r(wrap_r)
+		{
+		}
+	};
+	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params);
+	uint32 CreateTexture2D(cstring path, TextureParameter params);
+	void BindTexture(TEXTURE_TYPE target, const uint32& id);
+	void BindTexture2D(const uint32& id);
+	void BindTexture2D(const uint32& id, const uint32& active);
+	void BindTexture2D(const uint32& id, const uint32& active, const uint32& location);
+	void DeleteTexture(uint32& id);
+	void ActivateTexture(const int32& i);
 }
 

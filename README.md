@@ -9,3 +9,5 @@
 ## Screenshots
 ### 1. Triangle
 ![Triangle](Screenshot/BasicTriangle.png)
+### 2. TexturedQuad
+![Triangle](Screenshot/TexturedQuad.png)

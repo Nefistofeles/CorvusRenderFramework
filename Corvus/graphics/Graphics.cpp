@@ -192,9 +192,17 @@ namespace Corvus::gl
 	{
 		glViewport(x, y, width, height);
 	}
+	void PolygonMode(FACE face, POLYGON_MODE mode)
+	{
+		glPolygonMode(face, mode);
+	}
 	void DrawArrays(DRAW_MODE mode, int32 first, int32 count)
 	{
 		glDrawArrays(mode, first, count);
+	}
+	void DrawIndexed(DRAW_MODE mode, int32 count, DATA_TYPE dataType, const void* indices)
+	{
+		glDrawElements(mode, count, dataType, indices);
 	}
 	uint32 CreateVertexArray()
 	{
@@ -348,5 +356,65 @@ namespace Corvus::gl
 	void SetUniformMat4(const uint32& location, const glm::mat4& data, bool32 normalized)
 	{
 		glUniformMatrix4fv(location, 1, normalized, glm::value_ptr(data));
+	}
+
+	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params)
+	{
+		uint32 id;
+		stbi_set_flip_vertically_on_load(true);
+
+		int32 nrChannels, width, height;
+		uint8* data = stbi_load(path, &width, &height, &nrChannels, STBI_rgb_alpha);
+		NASSERT(data == nullptr, "texture load failed ", path);
+
+		glGenTextures(1, &id);
+		glBindTexture(target, id);
+
+		glTexParameteri(target, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MIN_FILTER, params.filterMin);
+		glTexParameteri(target, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MAG_FILTER, params.filterMag);
+
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_R, params.wrap_r);
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_S, params.wrap_s);
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_T, params.wrap_t);
+
+		//if (desc.useBorderColor)
+		//	glTexParameterfv(desc.target, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(desc.borderColor));
+
+		glTexImage2D(target, 0, TEXTURE_FORMAT_RGBA, width, height, 0, TEXTURE_FORMAT_RGBA, DATA_TYPE_UNSIGNED_BYTE, data);
+		glGenerateMipmap(target);
+		stbi_image_free(data);
+		return id;
+	}
+	uint32 CreateTexture2D(cstring path, TextureParameter params)
+	{
+		return CreateTexture(path, TEXTURE_TYPE_2D, params);
+	}
+	void BindTexture(TEXTURE_TYPE target, const uint32& id)
+	{
+		glBindTexture(target, id);
+	}
+	void BindTexture2D(const uint32& id)
+	{
+		BindTexture(TEXTURE_TYPE_2D, id);
+	}
+	void BindTexture2D(const uint32& id, const uint32& active)
+	{
+		BindTexture(TEXTURE_TYPE_2D, id);
+		ActivateTexture(active);
+	}
+	void BindTexture2D(const uint32& id, const uint32& active, const uint32& location)
+	{
+		BindTexture(TEXTURE_TYPE_2D, id);
+		ActivateTexture(active);
+		SetUniformInt(location, active);
+	}
+	void DeleteTexture(uint32& id)
+	{
+		glDeleteTextures(1, &id);
+		id = 0;
+	}
+	void ActivateTexture(const int32& i)
+	{
+		glActiveTexture(GL_TEXTURE0 + i);
 	}
 }
