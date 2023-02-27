@@ -5,3 +5,7 @@
 * [ImGui](https://github.com/ocornut/imgui): Dear ImGui: Bloat-free Graphical User interface for C++ with minimal dependencies
 * [STB](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++
 * [GLM](https://github.com/g-truc/glm) OpenGL Mathematics (GLM)
+
+## Screenshots
+### 1. Triangle
+![Triangle](Screenshot/BasicTriangle.png)

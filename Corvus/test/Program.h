@@ -10,6 +10,5 @@ public :
 	~Program();
 	void Init();
 	void Run();
-
 };
 
