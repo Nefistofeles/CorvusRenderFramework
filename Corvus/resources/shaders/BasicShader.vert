@@ -1,17 +1,20 @@
 #version 330 core
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aUv;
-layout (location = 2) in vec4 aColor;
+layout (location = 2) in vec3 aNormal;
 
 out vec2 uv;
-out vec4 color ;
+out vec3 normal ;
+out vec3 localPos ;
 
 uniform mat4 projView ;
 uniform mat4 transform ;
 
 void main()
 {
-	gl_Position = projView * transform * vec4(aPos, 1.0);
+	vec4 local = transform * vec4(aPos, 1.0) ;
+	gl_Position = projView * local;
 	uv = aUv;
-	color = aColor ;
+	normal = aNormal ;
+	localPos = local.xyz; //only rotation and scale
 }

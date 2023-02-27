@@ -76,6 +76,22 @@ namespace Corvus::gl
 		POLYGON_MODE_FILL = GL_FILL,
 	};
 	void PolygonMode(FACE face, POLYGON_MODE mode);
+	enum TEST
+	{
+		TEST_DEPTH = GL_DEPTH_TEST,
+		TEST_STENCIL = GL_STENCIL_TEST,
+		TEST_CULL_FACE = GL_CULL_FACE,
+		TEST_BLEND = GL_BLEND
+	};
+	enum DRAW_ORDER
+	{
+		DRAW_ORDER_CLOCKWISE = GL_CW,
+		DRAW_ORDER_COUNTER_CLOCKWISE = GL_CCW,
+	};
+	void Enable(TEST bit);
+	void Disable(TEST bit);
+	void CullFace(FACE face);
+	void FrontFace(DRAW_ORDER order);
 
 	enum DRAW_MODE
 	{
@@ -94,7 +110,8 @@ namespace Corvus::gl
 	uint32 CreateVertexArray();
 	void BindVertexArray(const uint32& id);
 	void DeleteVertexArray(uint32& id);
-
+	void EnableVertexAttrib(uint32 vao, uint32 index);
+	void DisableVertexAttrib(uint32 vao, uint32 index);
 	struct LayoutElement
 	{
 		uint32 index;

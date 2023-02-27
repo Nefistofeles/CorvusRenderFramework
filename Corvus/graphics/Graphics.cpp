@@ -196,6 +196,22 @@ namespace Corvus::gl
 	{
 		glPolygonMode(face, mode);
 	}
+	void Enable(TEST bit)
+	{
+		glEnable(bit);
+	}
+	void Disable(TEST bit)
+	{
+		glDisable(bit);
+	}
+	void CullFace(FACE face)
+	{
+		glCullFace(face);
+	}
+	void FrontFace(DRAW_ORDER bit)
+	{
+		glFrontFace(bit);
+	}
 	void DrawArrays(DRAW_MODE mode, int32 first, int32 count)
 	{
 		glDrawArrays(mode, first, count);
@@ -218,6 +234,14 @@ namespace Corvus::gl
 	{
 		glDeleteVertexArrays(1, &id);
 		id = 0;
+	}
+	void EnableVertexAttrib(uint32 vao, uint32 index)
+	{
+		glEnableVertexArrayAttrib(vao, index);
+	}
+	void DisableVertexAttrib(uint32 vao, uint32 index)
+	{
+		glDisableVertexArrayAttrib(vao, index);
 	}
 	uint32 CreateBuffer(BUFFER_TARGET target, int64 size, const void* data, BUFFER_USAGE usage)
 	{

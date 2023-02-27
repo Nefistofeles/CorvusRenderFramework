@@ -149,6 +149,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="test\Camera.cpp" />
     <ClCompile Include="core\Array.cpp" />
     <ClCompile Include="core\UniquePtr.cpp" />
     <ClCompile Include="glad\gl.c" />
@@ -165,6 +166,7 @@
     <ClCompile Include="test\Program.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="test\Camera.h" />
     <ClInclude Include="core\Array.h" />
     <ClInclude Include="core\Core.h" />
     <ClInclude Include="core\Logger.h" />

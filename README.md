@@ -10,4 +10,6 @@
 ### 1. Triangle
 ![Triangle](Screenshot/BasicTriangle.png)
 ### 2. TexturedQuad
-![Triangle](Screenshot/TexturedQuad.png)
+![TexturedQuad](Screenshot/TexturedQuad.png)
+### 3. Phong Light
+![BasicLight](Screenshot/BasicLight.png)
