@@ -53,10 +53,6 @@ void Program::CreateCube()
 	};
 	gl::BindLayoutElements(_countof(layouts), layouts);
 	gl::BindVertexArray(0);
-
-	uint32 vs = gl::CreateShader("resources/shaders/BasicShader.vert", gl::SHADER_TYPE_VERTEX);
-	uint32 fs = gl::CreateShader("resources/shaders/BasicShader.frag", gl::SHADER_TYPE_FRAGMENT);
-	program = gl::CreateProgram(vs, fs, true);
 }
 
 void Program::CreateTexture()
@@ -66,8 +62,22 @@ void Program::CreateTexture()
 		gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
 		gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE
 	};
-	textureId = gl::CreateTexture2D("resources/textures/wall.jpg", params);
-	textureLoc = gl::GetUniformLocation(program, "sampler");
+	material.diffuse = gl::CreateTexture2D("resources/textures/container.png", params);
+	material.diffuseLoc = gl::GetUniformLocation(cube.program, "material.diffuse");
+
+	material.specular = gl::CreateTexture2D("resources/textures/container_specular.png", params);
+	material.specularLoc = gl::GetUniformLocation(cube.program, "material.specular");
+
+	material.shininesLoc = gl::GetUniformLocation(cube.program, "material.shininess");
+}
+void Program::LoadLight()
+{
+	light.ambientLoc = gl::GetUniformLocation(cube.program, "light.ambient");
+	light.diffuseLoc = gl::GetUniformLocation(cube.program, "light.diffuse");
+	light.specularLoc = gl::GetUniformLocation(cube.program, "light.specular");
+
+	light.positionLoc = gl::GetUniformLocation(cube.program, "light.position");
+	light.colorLoc = gl::GetUniformLocation(cube.program, "light.color");
 }
 
 Program::Program()
@@ -87,11 +97,13 @@ Program::Program()
 
 Program::~Program()
 {
+	gl::DeleteProgram(light.program);
 	gl::DeleteVertexArray(vao);
 	gl::DeleteBuffer(vbo);
 	gl::DeleteBuffer(ebo);
-	gl::DeleteProgram(program);
-	gl::DeleteTexture(textureId);
+	gl::DeleteProgram(cube.program);
+	gl::DeleteTexture(material.diffuse);
+	gl::DeleteTexture(material.specular);
 	gl::Destroy();
 }
 
@@ -99,29 +111,16 @@ void Program::Init()
 {
 	gl::ClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
+	cube.Create();
+	light.Create();
+	CreateCube();
+	CreateTexture();
+	LoadLight();
 }
 
 void Program::Run()
 {
-	CreateCube();
-	CreateTexture();
 	ImGuiIO& io = ImGui::GetIO();
-	uint32 projViewLoc = gl::GetUniformLocation(program, "projView");
-	uint32 transformLoc = gl::GetUniformLocation(program, "transform");
-	uint32 cameraPosLoc = gl::GetUniformLocation(program, "cameraPos");
-	
-	CalculateTransform(transform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-
-	uint32 lightAmbientLoc = gl::GetUniformLocation(program, "light.ambient");
-	uint32 lightPositionLoc = gl::GetUniformLocation(program, "light.position");
-	uint32 lightColorLoc = gl::GetUniformLocation(program, "light.color");
-
-	uint32 lightVS = gl::CreateShader("resources/shaders/LightShader.vert", gl::SHADER_TYPE_VERTEX);
-	uint32 lightFS = gl::CreateShader("resources/shaders/LightShader.frag", gl::SHADER_TYPE_FRAGMENT);
-	lightProgram = gl::CreateProgram(lightVS, lightFS, true);
-	uint32 lightProjViewLoc = gl::GetUniformLocation(lightProgram, "projView");
-	uint32 lightTransformLoc = gl::GetUniformLocation(lightProgram, "transform");
-	CalculateTransform(lightTransform, light.position, glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 
 	while (gl::PollEvents())
 	{
@@ -135,30 +134,24 @@ void Program::Run()
 			camera.ProcessInput();
 		
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
-		gl::BindProgram(program);
+		gl::BindProgram(cube.program);
+		
+		light.SetUniformVariables();
+		cube.SetUniformVariables(camera.ProjView(), camera.GetPosition());
+		material.SetUnfiromVariables();
+
 		gl::BindVertexArray(vao);
 		gl::EnableVertexAttrib(vao, 1);
 		gl::EnableVertexAttrib(vao, 2);
-		
-		gl::SetUniformFloat(lightAmbientLoc, light.ambient);
-		gl::SetUniformVec3(lightPositionLoc, light.position);
-		gl::SetUniformVec3(lightColorLoc, light.color);		
-		gl::SetUniformVec3(cameraPosLoc, camera.GetPosition());
 
-		gl::SetUniformMat4(projViewLoc, camera.ProjView(), false);
-		gl::SetUniformMat4(transformLoc, transform, false);
-		
-		gl::BindTexture2D(textureId, 0, textureLoc);
 		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
-
-		gl::BindProgram(lightProgram);
+		
+		//for light
+		gl::BindProgram(light.program);
 		gl::DisableVertexAttrib(vao, 1);//disable uv and normal for light shader
 		gl::DisableVertexAttrib(vao, 2);
-		gl::SetUniformMat4(lightProjViewLoc, camera.ProjView(), false);
-		gl::SetUniformMat4(lightTransformLoc, lightTransform, false);
-
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
-		
+		light.SetUniformForVisualizationVariables(camera.ProjView());
+		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);		
 		//ui
 		gl::UIBegin();
 		ImGui::Begin("Settings");
@@ -172,14 +165,21 @@ void Program::Run()
 		//light factors
 		ImGui::Separator();
 		ImGui::Text("Light Settings");
-		ImGui::SliderFloat("Ambient", &light.ambient, 0.0f, 1.0f);
 		if (ImGui::DragFloat3("Light Position", glm::value_ptr(light.position), 0.1f, -100.0f, 100.0f))
 		{
-			CalculateTransform(lightTransform, light.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+			CalculateTransform(light.transform, light.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 		}
+		ImGui::ColorEdit3("Light Color", glm::value_ptr(light.color));
+		ImGui::SliderFloat3("Ambient", glm::value_ptr(light.ambient), 0.0f, 1.0f);
+		ImGui::SliderFloat3("Diffuse", glm::value_ptr(light.diffuse), 0.0f, 1.0f);
+		ImGui::SliderFloat3("Specular", glm::value_ptr(light.specular), 0.0f, 1.0f);
+		if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
+		{
+			material.shininess = (float32)pow(2, shininespow);
+		}
+		ImGui::Text("shininess: %f", material.shininess);
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
 	}
-	gl::DeleteProgram(lightProgram);
 }

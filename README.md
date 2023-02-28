@@ -13,3 +13,5 @@
 ![TexturedQuad](Screenshot/TexturedQuad.png)
 ### 3. Phong Light
 ![BasicLight](Screenshot/BasicLight.png)
+### 4. Material
+![Material](Screenshot/Material.png)
