@@ -16,5 +16,5 @@ void main()
 	gl_Position = projView * local;
 	uv = aUv;
 	normal = aNormal ;
-	localPos = local.xyz; //only rotation and scale
+	localPos = vec3(local); //only rotation and scale
 }

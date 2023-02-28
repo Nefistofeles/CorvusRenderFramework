@@ -407,6 +407,7 @@ namespace Corvus::gl
 		glTexImage2D(target, 0, TEXTURE_FORMAT_RGBA, width, height, 0, TEXTURE_FORMAT_RGBA, DATA_TYPE_UNSIGNED_BYTE, data);
 		glGenerateMipmap(target);
 		stbi_image_free(data);
+		glBindTexture(target, 0);
 		return id;
 	}
 	uint32 CreateTexture2D(cstring path, TextureParameter params)
@@ -428,7 +429,7 @@ namespace Corvus::gl
 	}
 	void BindTexture2D(const uint32& id, const uint32& active, const uint32& location)
 	{
-		BindTexture(TEXTURE_TYPE_2D, id);
+		BindTexture(TEXTURE_TYPE_2D, id);		
 		ActivateTexture(active);
 		SetUniformInt(location, active);
 	}

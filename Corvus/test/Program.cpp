@@ -1,4 +1,6 @@
 #include "Program.h"
+#include <random>
+
 float32 vertices[] ={
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
 	 0.5f, 0.5f,-0.5f,	  0.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //1
@@ -55,31 +57,16 @@ void Program::CreateCube()
 	gl::BindVertexArray(0);
 }
 
-void Program::CreateTexture()
+void Program::CreateTextures()
 {	
 	gl::TextureParameter params = 
 	{
 		gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
 		gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE
 	};
-	material.diffuse = gl::CreateTexture2D("resources/textures/container.png", params);
-	material.diffuseLoc = gl::GetUniformLocation(cube.program, "material.diffuse");
-
-	material.specular = gl::CreateTexture2D("resources/textures/container_specular.png", params);
-	material.specularLoc = gl::GetUniformLocation(cube.program, "material.specular");
-
-	material.shininesLoc = gl::GetUniformLocation(cube.program, "material.shininess");
+	phongMaterial.diffuseTexture = gl::CreateTexture2D("resources/textures/container.png", params);
+	phongMaterial.specularTexture = gl::CreateTexture2D("resources/textures/container_specular.png", params);
 }
-void Program::LoadLight()
-{
-	light.ambientLoc = gl::GetUniformLocation(cube.program, "light.ambient");
-	light.diffuseLoc = gl::GetUniformLocation(cube.program, "light.diffuse");
-	light.specularLoc = gl::GetUniformLocation(cube.program, "light.specular");
-
-	light.positionLoc = gl::GetUniformLocation(cube.program, "light.position");
-	light.colorLoc = gl::GetUniformLocation(cube.program, "light.color");
-}
-
 Program::Program()
 {
 	gl::Init(1366, 768, "Corvus");
@@ -92,18 +79,15 @@ Program::Program()
 	gl::Enable(gl::TEST_DEPTH);
 	gl::Enable(gl::TEST_CULL_FACE);
 	gl::CullFace(gl::FACE_BACK);
-
 }
 
 Program::~Program()
 {
-	gl::DeleteProgram(light.program);
+	phongMaterial.Delete();
+	phongShader.Delete();
 	gl::DeleteVertexArray(vao);
 	gl::DeleteBuffer(vbo);
 	gl::DeleteBuffer(ebo);
-	gl::DeleteProgram(cube.program);
-	gl::DeleteTexture(material.diffuse);
-	gl::DeleteTexture(material.specular);
 	gl::Destroy();
 }
 
@@ -111,16 +95,24 @@ void Program::Init()
 {
 	gl::ClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
-	cube.Create();
-	light.Create();
+	phongShader.Create();
 	CreateCube();
-	CreateTexture();
-	LoadLight();
+	CreateTextures();
+
+	uint32 vs = gl::CreateShader("resources/shaders/LightShader.vert", gl::SHADER_TYPE_VERTEX);
+	uint32 fs = gl::CreateShader("resources/shaders/LightShader.frag", gl::SHADER_TYPE_FRAGMENT);
+	lightProgram = gl::CreateProgram(vs, fs, true);
+	lightProjViewLoc = gl::GetUniformLocation(lightProgram, "projView");
+	lightTransformLoc = gl::GetUniformLocation(lightProgram, "transform");
+	lightColorLoc = gl::GetUniformLocation(lightProgram, "color");
 }
 
 void Program::Run()
 {
 	ImGuiIO& io = ImGui::GetIO();
+
+	CalculateTransform(cubeTransform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+	CalculateTransform(lightTransform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 
 	while (gl::PollEvents())
 	{
@@ -134,24 +126,21 @@ void Program::Run()
 			camera.ProcessInput();
 		
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
-		gl::BindProgram(cube.program);
-		
-		light.SetUniformVariables();
-		cube.SetUniformVariables(camera.ProjView(), camera.GetPosition());
-		material.SetUnfiromVariables();
 
 		gl::BindVertexArray(vao);
 		gl::EnableVertexAttrib(vao, 1);
 		gl::EnableVertexAttrib(vao, 2);
 
+		phongShader.Bind(phongLight, phongMaterial, camera.ProjView(), camera.GetPosition());
+		phongShader.BindTransform(cubeTransform);
 		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
-		
 		//for light
-		gl::BindProgram(light.program);
+		gl::BindProgram(lightProgram);
 		gl::DisableVertexAttrib(vao, 1);//disable uv and normal for light shader
 		gl::DisableVertexAttrib(vao, 2);
-		light.SetUniformForVisualizationVariables(camera.ProjView());
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);		
+		gl::SetUniformMat4(lightProjViewLoc, camera.ProjView(), false);
+		gl::SetUniformMat4(lightTransformLoc, lightTransform, false);
+		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
 		//ui
 		gl::UIBegin();
 		ImGui::Begin("Settings");
@@ -165,19 +154,18 @@ void Program::Run()
 		//light factors
 		ImGui::Separator();
 		ImGui::Text("Light Settings");
-		if (ImGui::DragFloat3("Light Position", glm::value_ptr(light.position), 0.1f, -100.0f, 100.0f))
+		if (ImGui::DragFloat3("Light Position", glm::value_ptr(phongLight.position), 0.1f, -100.0f, 100.0f))
 		{
-			CalculateTransform(light.transform, light.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+			CalculateTransform(lightTransform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 		}
-		ImGui::ColorEdit3("Light Color", glm::value_ptr(light.color));
-		ImGui::SliderFloat3("Ambient", glm::value_ptr(light.ambient), 0.0f, 1.0f);
-		ImGui::SliderFloat3("Diffuse", glm::value_ptr(light.diffuse), 0.0f, 1.0f);
-		ImGui::SliderFloat3("Specular", glm::value_ptr(light.specular), 0.0f, 1.0f);
+		ImGui::SliderFloat3("Ambient", glm::value_ptr(phongLight.ambient), 0.0f, 1.0f);
+		ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongLight.diffuse), 0.0f, 1.0f);
+		ImGui::SliderFloat3("Specular", glm::value_ptr(phongLight.specular), 0.0f, 1.0f);
 		if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
 		{
-			material.shininess = (float32)pow(2, shininespow);
+			phongMaterial.shininess = (float32)pow(2, shininespow);
 		}
-		ImGui::Text("shininess: %f", material.shininess);
+		ImGui::Text("shininess: %f", phongMaterial.shininess);
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
