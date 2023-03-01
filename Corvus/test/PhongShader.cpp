@@ -10,14 +10,13 @@ void PhongShader::Create()
 	transformLoc = gl::GetUniformLocation(program, "transform");
 	cameraPosLoc = gl::GetUniformLocation(program, "cameraPos");
 
+	lightPosLoc = gl::GetUniformLocation(program, "light.position");
+	lightColorLoc = gl::GetUniformLocation(program, "light.color");
+	
+	materialAmbientLoc = gl::GetUniformLocation(program, "material.ambient");
 	materialDiffuseLoc = gl::GetUniformLocation(program, "material.diffuse");
 	materialSpecularLoc = gl::GetUniformLocation(program, "material.specular");
 	materialShininessLoc = gl::GetUniformLocation(program, "material.shininess");
-
-	lightPosLoc = gl::GetUniformLocation(program, "light.position");
-	lightAmbientLoc = gl::GetUniformLocation(program, "light.ambient");
-	lightDiffuseLoc = gl::GetUniformLocation(program, "light.diffuse");
-	lightSpecularLoc = gl::GetUniformLocation(program, "light.specular");
 }
 
 void PhongShader::Bind(const PhongLight& light, const PhongMaterial& material, const glm::mat4& projView, const glm::vec3& cameraPos)
@@ -26,14 +25,14 @@ void PhongShader::Bind(const PhongLight& light, const PhongMaterial& material, c
 	gl::SetUniformMat4(projViewLoc, projView, false);
 	gl::SetUniformVec3(cameraPosLoc, cameraPos);
 
-	gl::BindTexture2D(material.diffuseTexture, 0, materialDiffuseLoc);
-	gl::BindTexture2D(material.specularTexture, 1, materialSpecularLoc);
 	gl::SetUniformFloat(materialShininessLoc, material.shininess);
 
 	gl::SetUniformVec3(lightPosLoc, light.position);
-	gl::SetUniformVec3(lightAmbientLoc, light.ambient);
-	gl::SetUniformVec3(lightDiffuseLoc, light.diffuse);
-	gl::SetUniformVec3(lightSpecularLoc, light.specular);
+	gl::SetUniformVec3(lightColorLoc, light.color);
+	gl::SetUniformFloat(materialAmbientLoc, material.ambient);
+	gl::SetUniformVec3(materialDiffuseLoc, material.diffuse);
+	gl::SetUniformVec3(materialSpecularLoc, material.specular);
+	gl::SetUniformFloat(materialShininessLoc, material.shininess);
 }
 void PhongShader::BindTransform(const glm::mat4& transform)
 {

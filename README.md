@@ -5,8 +5,8 @@
 * [ImGui](https://github.com/ocornut/imgui): Dear ImGui: Bloat-free Graphical User interface for C++ with minimal dependencies
 * [STB](https://github.com/nothings/stb): stb single-file public domain libraries for C/C++
 * [GLM](https://github.com/g-truc/glm) OpenGL Mathematics (GLM)
-
-## Screenshots
+* [Assimp](https://github.com/assimp/assimp) The official Open-Asset-Importer-Library Repository. Loads 40+ 3D-file-formats into one unified and clean data structure.
+## Examples
 ### 1. Triangle
 ![Triangle](Screenshot/BasicTriangle.png)
 ### 2. TexturedQuad
@@ -15,3 +15,5 @@
 ![BasicLight](Screenshot/BasicLight.png)
 ### 4. Material
 ![Material](Screenshot/Material.png)
+### 5. Basic Assimp Implementation
+![Assimp](Screenshot/Assimp.png)

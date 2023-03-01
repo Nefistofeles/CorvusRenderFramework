@@ -1,7 +1,7 @@
 #include "Program.h"
 #include <random>
 
-float32 vertices[] ={
+float32 vertices[] = {
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
 	 0.5f, 0.5f,-0.5f,	  0.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //1
 	 0.5f,-0.5f,-0.5f,	  0.0f, 0.0f,	 0.0f, 0.0f,-1.0f, //2
@@ -41,31 +41,34 @@ uint32 indices[] =
 	16, 17, 19, 19, 17, 18,
 	20, 21, 23, 23, 21, 22
 };
+
 void Program::CreateCube()
 {
-	vao = gl::CreateVertexArray();
-	gl::BindVertexArray(vao);
-	vbo = gl::CreateStaticVertexBuffer(sizeof(vertices), vertices);
-	ebo = gl::CreateStaticIndexBuffer(sizeof(indices), indices);
+	gl::Scene* scene = gl::LoadObjectFromFile("resources/objects/dragon/dragon.obj");
+	auto& dragonVertices = scene->pMeshes[0].pVertices;
+	auto& dragonIndices = scene->pMeshes[0].pIndices;
+	
 	gl::LayoutElement layouts[] =
 	{
 		{0, 3, gl::DATA_TYPE_FLOAT, false},
 		{1, 2, gl::DATA_TYPE_FLOAT, false},
 		{2, 3, gl::DATA_TYPE_FLOAT, false},
 	};
-	gl::BindLayoutElements(_countof(layouts), layouts);
-	gl::BindVertexArray(0);
+
+	dragon.Create(dragonVertices.Size() * sizeof(dragonVertices[0]), &dragonVertices[0], sizeof(uint32) * dragonIndices.Size(), &dragonIndices[0], _countof(layouts), layouts);
+	cube.Create(sizeof(vertices), vertices, sizeof(indices), indices, _countof(layouts), layouts);
+	delete scene;
 }
 
 void Program::CreateTextures()
 {	
-	gl::TextureParameter params = 
-	{
-		gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
-		gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE
-	};
-	phongMaterial.diffuseTexture = gl::CreateTexture2D("resources/textures/container.png", params);
-	phongMaterial.specularTexture = gl::CreateTexture2D("resources/textures/container_specular.png", params);
+	//gl::TextureParameter params = 
+	//{
+	//	gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
+	//	gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE
+	//};
+	//phongMaterial.diffuseTexture = gl::CreateTexture2D("resources/textures/container.png", params);
+	//phongMaterial.specularTexture = gl::CreateTexture2D("resources/textures/container_specular.png", params);
 }
 Program::Program()
 {
@@ -83,11 +86,9 @@ Program::Program()
 
 Program::~Program()
 {
-	phongMaterial.Delete();
 	phongShader.Delete();
-	gl::DeleteVertexArray(vao);
-	gl::DeleteBuffer(vbo);
-	gl::DeleteBuffer(ebo);
+	dragon.Destroy();
+	cube.Destroy();
 	gl::Destroy();
 }
 
@@ -111,8 +112,8 @@ void Program::Run()
 {
 	ImGuiIO& io = ImGui::GetIO();
 
-	CalculateTransform(cubeTransform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-	CalculateTransform(lightTransform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+	CalculateTransform(dragon.transform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+	CalculateTransform(cube.transform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 
 	while (gl::PollEvents())
 	{
@@ -127,20 +128,18 @@ void Program::Run()
 		
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
 
-		gl::BindVertexArray(vao);
-		gl::EnableVertexAttrib(vao, 1);
-		gl::EnableVertexAttrib(vao, 2);
+		gl::BindVertexArray(dragon.vao);
 
 		phongShader.Bind(phongLight, phongMaterial, camera.ProjView(), camera.GetPosition());
-		phongShader.BindTransform(cubeTransform);
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
+		phongShader.BindTransform(dragon.transform);
+		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, dragon.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
 		//for light
+		gl::BindVertexArray(cube.vao);
 		gl::BindProgram(lightProgram);
-		gl::DisableVertexAttrib(vao, 1);//disable uv and normal for light shader
-		gl::DisableVertexAttrib(vao, 2);
 		gl::SetUniformMat4(lightProjViewLoc, camera.ProjView(), false);
-		gl::SetUniformMat4(lightTransformLoc, lightTransform, false);
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, _countof(indices), gl::DATA_TYPE_UNSIGNED_INT, 0);
+		gl::SetUniformMat4(lightTransformLoc, cube.transform, false);
+		gl::SetUniformVec3(lightColorLoc, phongLight.color);
+		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, cube.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
 		//ui
 		gl::UIBegin();
 		ImGui::Begin("Settings");
@@ -154,13 +153,22 @@ void Program::Run()
 		//light factors
 		ImGui::Separator();
 		ImGui::Text("Light Settings");
+		ImGui::ColorEdit3("Light Color", glm::value_ptr(phongLight.color));
 		if (ImGui::DragFloat3("Light Position", glm::value_ptr(phongLight.position), 0.1f, -100.0f, 100.0f))
 		{
-			CalculateTransform(lightTransform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+			CalculateTransform(cube.transform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 		}
-		ImGui::SliderFloat3("Ambient", glm::value_ptr(phongLight.ambient), 0.0f, 1.0f);
-		ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongLight.diffuse), 0.0f, 1.0f);
-		ImGui::SliderFloat3("Specular", glm::value_ptr(phongLight.specular), 0.0f, 1.0f);
+		ImGui::SliderFloat("Ambient", &phongMaterial.ambient, 0.0f, 1.0f);
+		ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongMaterial.diffuse), 0.0f, 1.0f);
+		if (ImGui::SliderFloat("###Diffuse", &phongMaterial.diffuse.x, 0.0f, 1.0f))
+		{
+			phongMaterial.diffuse = glm::vec3(phongMaterial.diffuse.x, phongMaterial.diffuse.x, phongMaterial.diffuse.x);
+		}
+		ImGui::SliderFloat3("Specular", glm::value_ptr(phongMaterial.specular), 0.0f, 1.0f);
+		if (ImGui::SliderFloat("###Specular", &phongMaterial.specular.x, 0.0f, 1.0f))
+		{
+			phongMaterial.specular = glm::vec3(phongMaterial.specular.x, phongMaterial.specular.x, phongMaterial.specular.x);
+		}
 		if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
 		{
 			phongMaterial.shininess = (float32)pow(2, shininespow);
