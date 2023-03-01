@@ -24,7 +24,8 @@ void Camera::FPSControl()
 }
 Camera::Camera()
 {
-	view = glm::lookAt(cameraPos, glm::vec3(0.0f, 0.0f, 0.0f), cameraUp);
+	view = glm::lookAt(cameraPos, cameraFront + cameraPos, cameraUp);
+	projView = proj * view;
 }
 void Camera::ProcessInput()
 {
@@ -72,4 +73,9 @@ glm::mat4 Camera::Proj()
 glm::vec3 Camera::GetPosition()
 {
 	return cameraPos;
+}
+
+void Camera::SetPosition(const glm::vec3& position)
+{
+	cameraPos = position;
 }

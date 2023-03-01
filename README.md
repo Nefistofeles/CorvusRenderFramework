@@ -17,3 +17,5 @@
 ![Material](Screenshot/Material.png)
 ### 5. Basic Assimp Implementation
 ![Assimp](Screenshot/Assimp.png)
+### 6. Directional and Point Light
+![DSLight](Screenshot/DSLight.png)

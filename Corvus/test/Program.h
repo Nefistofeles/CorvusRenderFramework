@@ -19,11 +19,10 @@ private :
 
 	Camera camera;
 	SDL_bool relative = SDL_TRUE;
-	uint32 cubeVao = 0, dragonVao, dragonVbo = 0, cubeVbo = 0, dragonEbo = 0, cubeEbo = 0;
+	uint32 cubeVao = 0, dragonVao = 0, dragonVbo = 0, cubeVbo = 0, dragonEbo = 0, cubeEbo = 0;
 
 private :
 	void CreateCube();
-	void CreateTextures();
 	struct Object
 	{
 		uint32 vao = 0;
@@ -55,12 +54,16 @@ private :
 			gl::DeleteBuffer(vbo);
 			gl::DeleteBuffer(ebo);
 		}
-
 	};
+	void LightUI();
+	void MateriaUI();
 	Object dragon;
 	Object cube;
 
-	PhongLight phongLight = {};
+	PhongLight lights[2];
+	cstring const lightTypes[2] = { "SUN", "POINT" };
+	int32 currentLightItem = 0;
+
 	PhongMaterial phongMaterial = {};
 	PhongShader phongShader = {};
 	int32 shininespow = 1;

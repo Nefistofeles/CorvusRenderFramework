@@ -10,25 +10,43 @@ void PhongShader::Create()
 	transformLoc = gl::GetUniformLocation(program, "transform");
 	cameraPosLoc = gl::GetUniformLocation(program, "cameraPos");
 
-	lightPosLoc = gl::GetUniformLocation(program, "light.position");
-	lightColorLoc = gl::GetUniformLocation(program, "light.color");
-	
 	materialAmbientLoc = gl::GetUniformLocation(program, "material.ambient");
 	materialDiffuseLoc = gl::GetUniformLocation(program, "material.diffuse");
 	materialSpecularLoc = gl::GetUniformLocation(program, "material.specular");
 	materialShininessLoc = gl::GetUniformLocation(program, "material.shininess");
 }
 
-void PhongShader::Bind(const PhongLight& light, const PhongMaterial& material, const glm::mat4& projView, const glm::vec3& cameraPos)
+void PhongShader::Bind(PhongLight& light, const PhongMaterial& material, const glm::mat4& projView, const glm::vec3& cameraPos)
 {
 	gl::BindProgram(program);
 	gl::SetUniformMat4(projViewLoc, projView, false);
 	gl::SetUniformVec3(cameraPosLoc, cameraPos);
 
+	if (!light.isCreated)
+	{
+		light.Create(program);
+	}
+	light.Bind();
+	gl::SetUniformFloat(materialAmbientLoc, material.ambient);
+	gl::SetUniformVec3(materialDiffuseLoc, material.diffuse);
+	gl::SetUniformVec3(materialSpecularLoc, material.specular);
 	gl::SetUniformFloat(materialShininessLoc, material.shininess);
+}
+void PhongShader::Bind(int32 lightCount, PhongLight* lights, const PhongMaterial& material, const glm::mat4& projView, const glm::vec3& cameraPos)
+{
+	gl::BindProgram(program);
+	gl::SetUniformMat4(projViewLoc, projView, false);
+	gl::SetUniformVec3(cameraPosLoc, cameraPos);
 
-	gl::SetUniformVec3(lightPosLoc, light.position);
-	gl::SetUniformVec3(lightColorLoc, light.color);
+	for (int32 i = 0; i < lightCount; i++)
+	{
+		if (!lights[i].isCreated)
+		{
+			lights[i].Create(program);
+		}
+		lights[i].Bind();
+	}
+
 	gl::SetUniformFloat(materialAmbientLoc, material.ambient);
 	gl::SetUniformVec3(materialDiffuseLoc, material.diffuse);
 	gl::SetUniformVec3(materialSpecularLoc, material.specular);

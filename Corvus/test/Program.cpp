@@ -60,15 +60,44 @@ void Program::CreateCube()
 	delete scene;
 }
 
-void Program::CreateTextures()
-{	
-	//gl::TextureParameter params = 
-	//{
-	//	gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
-	//	gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE, gl::TEXTURE_WRAP_CLAMP_TO_EDGE
-	//};
-	//phongMaterial.diffuseTexture = gl::CreateTexture2D("resources/textures/container.png", params);
-	//phongMaterial.specularTexture = gl::CreateTexture2D("resources/textures/container_specular.png", params);
+void Program::LightUI()
+{
+	ImGui::Text("Light Settings");
+	ImGui::Combo("Light Type", &currentLightItem, lightTypes, 2);
+	if (currentLightItem == (int32)LIGHT_TYPE::LIGHT_TYPE_SUN)
+	{
+		ImGui::ColorEdit3("Light Color", glm::value_ptr(lights[0].color));
+		ImGui::DragFloat3("Light Direction", glm::value_ptr(lights[0].direction), 0.1f, -1.0f, 1.0f);
+	}
+	else if (currentLightItem == (int32)LIGHT_TYPE::LIGHT_TYPE_POINT)
+	{
+		ImGui::ColorEdit3("Light Color", glm::value_ptr(lights[1].color));
+		if (ImGui::DragFloat3("Light Position", glm::value_ptr(lights[1].position), 0.1f, -100.0f, 100.0f))
+		{
+			CalculateTransform(cube.transform, glm::vec3(lights[1].position), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+		}
+		ImGui::DragFloat3("Light Attenuation", glm::value_ptr(lights[1].attenuation), 0.0001f, 0.0f, 1.0f, "%.5f");
+	}
+}
+void Program::MateriaUI()
+{
+	ImGui::Text("Material Settings");
+	ImGui::SliderFloat("Ambient", &phongMaterial.ambient, 0.0f, 1.0f);
+	ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongMaterial.diffuse), 0.0f, 1.0f);
+	if (ImGui::SliderFloat("###Diffuse", &phongMaterial.diffuse.x, 0.0f, 1.0f))
+	{
+		phongMaterial.diffuse = glm::vec3(phongMaterial.diffuse.x, phongMaterial.diffuse.x, phongMaterial.diffuse.x);
+	}
+	ImGui::SliderFloat3("Specular", glm::value_ptr(phongMaterial.specular), 0.0f, 1.0f);
+	if (ImGui::SliderFloat("###Specular", &phongMaterial.specular.x, 0.0f, 1.0f))
+	{
+		phongMaterial.specular = glm::vec3(phongMaterial.specular.x, phongMaterial.specular.x, phongMaterial.specular.x);
+	}
+	if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
+	{
+		phongMaterial.shininess = (float32)pow(2, shininespow);
+	}
+	ImGui::Text("shininess: %f", phongMaterial.shininess);
 }
 Program::Program()
 {
@@ -96,9 +125,9 @@ void Program::Init()
 {
 	gl::ClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
+	camera.SetPosition({ -10.0f, 14.0f, 14.0f });
 	phongShader.Create();
 	CreateCube();
-	CreateTextures();
 
 	uint32 vs = gl::CreateShader("resources/shaders/LightShader.vert", gl::SHADER_TYPE_VERTEX);
 	uint32 fs = gl::CreateShader("resources/shaders/LightShader.frag", gl::SHADER_TYPE_FRAGMENT);
@@ -106,14 +135,18 @@ void Program::Init()
 	lightProjViewLoc = gl::GetUniformLocation(lightProgram, "projView");
 	lightTransformLoc = gl::GetUniformLocation(lightProgram, "transform");
 	lightColorLoc = gl::GetUniformLocation(lightProgram, "color");
-}
 
+	lights[0].type = LIGHT_TYPE_SUN;
+	lights[0].index = 0;
+	lights[1].type = LIGHT_TYPE_POINT;
+	lights[1].index = 1;
+}
 void Program::Run()
 {
-	ImGuiIO& io = ImGui::GetIO();
+	ImGuiIO& io = ImGui::GetIO();	
 
 	CalculateTransform(dragon.transform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-	CalculateTransform(cube.transform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+	CalculateTransform(cube.transform, lights[1].position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
 
 	while (gl::PollEvents())
 	{
@@ -127,10 +160,9 @@ void Program::Run()
 			camera.ProcessInput();
 		
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
-
 		gl::BindVertexArray(dragon.vao);
 
-		phongShader.Bind(phongLight, phongMaterial, camera.ProjView(), camera.GetPosition());
+		phongShader.Bind(2, lights, phongMaterial, camera.ProjView(), camera.GetPosition());
 		phongShader.BindTransform(dragon.transform);
 		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, dragon.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
 		//for light
@@ -138,7 +170,7 @@ void Program::Run()
 		gl::BindProgram(lightProgram);
 		gl::SetUniformMat4(lightProjViewLoc, camera.ProjView(), false);
 		gl::SetUniformMat4(lightTransformLoc, cube.transform, false);
-		gl::SetUniformVec3(lightColorLoc, phongLight.color);
+		gl::SetUniformVec3(lightColorLoc, lights[1].color);
 		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, cube.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
 		//ui
 		gl::UIBegin();
@@ -150,30 +182,10 @@ void Program::Run()
 			gl::PolygonMode(gl::FACE_FRONT_AND_BACK, polygonModes[polygonMode]);
 		}
 		ImGui::Text("Camera Position: %f, %f, %f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		//light factors
 		ImGui::Separator();
-		ImGui::Text("Light Settings");
-		ImGui::ColorEdit3("Light Color", glm::value_ptr(phongLight.color));
-		if (ImGui::DragFloat3("Light Position", glm::value_ptr(phongLight.position), 0.1f, -100.0f, 100.0f))
-		{
-			CalculateTransform(cube.transform, phongLight.position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
-		}
-		ImGui::SliderFloat("Ambient", &phongMaterial.ambient, 0.0f, 1.0f);
-		ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongMaterial.diffuse), 0.0f, 1.0f);
-		if (ImGui::SliderFloat("###Diffuse", &phongMaterial.diffuse.x, 0.0f, 1.0f))
-		{
-			phongMaterial.diffuse = glm::vec3(phongMaterial.diffuse.x, phongMaterial.diffuse.x, phongMaterial.diffuse.x);
-		}
-		ImGui::SliderFloat3("Specular", glm::value_ptr(phongMaterial.specular), 0.0f, 1.0f);
-		if (ImGui::SliderFloat("###Specular", &phongMaterial.specular.x, 0.0f, 1.0f))
-		{
-			phongMaterial.specular = glm::vec3(phongMaterial.specular.x, phongMaterial.specular.x, phongMaterial.specular.x);
-		}
-		if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
-		{
-			phongMaterial.shininess = (float32)pow(2, shininespow);
-		}
-		ImGui::Text("shininess: %f", phongMaterial.shininess);
+		LightUI();		
+		ImGui::Separator();
+		MateriaUI();
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
