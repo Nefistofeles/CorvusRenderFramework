@@ -1,5 +1,7 @@
 #include "Program.h"
 #include <random>
+#include "Mesh.h"
+#include "Shader.h"
 
 float32 vertices[] = {
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
@@ -41,64 +43,6 @@ uint32 indices[] =
 	16, 17, 19, 19, 17, 18,
 	20, 21, 23, 23, 21, 22
 };
-
-void Program::CreateCube()
-{
-	gl::Scene* scene = gl::LoadObjectFromFile("resources/objects/dragon/dragon.obj");
-	auto& dragonVertices = scene->pMeshes[0].pVertices;
-	auto& dragonIndices = scene->pMeshes[0].pIndices;
-	
-	gl::LayoutElement layouts[] =
-	{
-		{0, 3, gl::DATA_TYPE_FLOAT, false},
-		{1, 2, gl::DATA_TYPE_FLOAT, false},
-		{2, 3, gl::DATA_TYPE_FLOAT, false},
-	};
-
-	dragon.Create(dragonVertices.Size() * sizeof(dragonVertices[0]), &dragonVertices[0], sizeof(uint32) * dragonIndices.Size(), &dragonIndices[0], _countof(layouts), layouts);
-	cube.Create(sizeof(vertices), vertices, sizeof(indices), indices, _countof(layouts), layouts);
-	delete scene;
-}
-
-void Program::LightUI()
-{
-	ImGui::Text("Light Settings");
-	ImGui::Combo("Light Type", &currentLightItem, lightTypes, 2);
-	if (currentLightItem == (int32)LIGHT_TYPE::LIGHT_TYPE_SUN)
-	{
-		ImGui::ColorEdit3("Light Color", glm::value_ptr(lights[0].color));
-		ImGui::DragFloat3("Light Direction", glm::value_ptr(lights[0].direction), 0.1f, -1.0f, 1.0f);
-	}
-	else if (currentLightItem == (int32)LIGHT_TYPE::LIGHT_TYPE_POINT)
-	{
-		ImGui::ColorEdit3("Light Color", glm::value_ptr(lights[1].color));
-		if (ImGui::DragFloat3("Light Position", glm::value_ptr(lights[1].position), 0.1f, -100.0f, 100.0f))
-		{
-			CalculateTransform(cube.transform, glm::vec3(lights[1].position), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
-		}
-		ImGui::DragFloat3("Light Attenuation", glm::value_ptr(lights[1].attenuation), 0.0001f, 0.0f, 1.0f, "%.5f");
-	}
-}
-void Program::MateriaUI()
-{
-	ImGui::Text("Material Settings");
-	ImGui::SliderFloat("Ambient", &phongMaterial.ambient, 0.0f, 1.0f);
-	ImGui::SliderFloat3("Diffuse", glm::value_ptr(phongMaterial.diffuse), 0.0f, 1.0f);
-	if (ImGui::SliderFloat("###Diffuse", &phongMaterial.diffuse.x, 0.0f, 1.0f))
-	{
-		phongMaterial.diffuse = glm::vec3(phongMaterial.diffuse.x, phongMaterial.diffuse.x, phongMaterial.diffuse.x);
-	}
-	ImGui::SliderFloat3("Specular", glm::value_ptr(phongMaterial.specular), 0.0f, 1.0f);
-	if (ImGui::SliderFloat("###Specular", &phongMaterial.specular.x, 0.0f, 1.0f))
-	{
-		phongMaterial.specular = glm::vec3(phongMaterial.specular.x, phongMaterial.specular.x, phongMaterial.specular.x);
-	}
-	if (ImGui::DragInt("shininess", &shininespow, 1, 1, 8))
-	{
-		phongMaterial.shininess = (float32)pow(2, shininespow);
-	}
-	ImGui::Text("shininess: %f", phongMaterial.shininess);
-}
 Program::Program()
 {
 	gl::Init(1366, 768, "Corvus");
@@ -115,9 +59,6 @@ Program::Program()
 
 Program::~Program()
 {
-	phongShader.Delete();
-	dragon.Destroy();
-	cube.Destroy();
 	gl::Destroy();
 }
 
@@ -126,27 +67,45 @@ void Program::Init()
 	gl::ClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
 	camera.SetPosition({ -10.0f, 14.0f, 14.0f });
-	phongShader.Create();
-	CreateCube();
-
-	uint32 vs = gl::CreateShader("resources/shaders/LightShader.vert", gl::SHADER_TYPE_VERTEX);
-	uint32 fs = gl::CreateShader("resources/shaders/LightShader.frag", gl::SHADER_TYPE_FRAGMENT);
-	lightProgram = gl::CreateProgram(vs, fs, true);
-	lightProjViewLoc = gl::GetUniformLocation(lightProgram, "projView");
-	lightTransformLoc = gl::GetUniformLocation(lightProgram, "transform");
-	lightColorLoc = gl::GetUniformLocation(lightProgram, "color");
-
-	lights[0].type = LIGHT_TYPE_SUN;
-	lights[0].index = 0;
-	lights[1].type = LIGHT_TYPE_POINT;
-	lights[1].index = 1;
 }
 void Program::Run()
 {
-	ImGuiIO& io = ImGui::GetIO();	
+	ImGuiIO& io = ImGui::GetIO();
+	gl::LayoutElement elements[] =
+	{
+		{0, 3, gl::DATA_TYPE_FLOAT, false},
+		{1, 2, gl::DATA_TYPE_FLOAT, false},
+		{2, 3, gl::DATA_TYPE_FLOAT, false},
+	};
+	StaticMesh cube(_countof(elements), elements, sizeof(vertices), vertices, sizeof(indices), indices);
+	Shader basicShader("resources/shaders/BasicShader.vert", "resources/shaders/BasicShader.frag");
+	uint32 uv_multiplierLoc = basicShader.GetUniformLoc("uv_multiplier");
+	uint32 samplerLoc = basicShader.GetUniformLoc("sampler");
 
-	CalculateTransform(dragon.transform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-	CalculateTransform(cube.transform, lights[1].position, glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(0.2f, 0.2f, 0.2f));
+	gl::TextureParameter params =
+	{
+		gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
+		gl::TEXTURE_WRAP_REPEAT,gl::TEXTURE_WRAP_REPEAT,gl::TEXTURE_WRAP_REPEAT
+	};
+	uint32 texture1 = gl::CreateTexture2D("resources/textures/container.png", params);
+	uint32 texture2 = gl::CreateTexture2D("resources/textures/wall.jpg", params);
+	uint32 texture3 = gl::CreateTexture2D("resources/textures/grass.png", params);
+
+	Shader quadShader("resources/shaders/Quad.vert", "resources/shaders/Quad.frag");
+	uint32 grassSamplerLoc = quadShader.GetUniformLoc("sampler");
+	glm::mat4 containerTransform = glm::mat4(1.0f);
+	CalculateTransform(containerTransform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
+
+	glm::mat4 ground = glm::mat4(1.0f);
+	CalculateTransform(ground, glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::radians(0.0f), glm::vec3(15.0f, 0.1f, 15.0f));
+	
+	glm::mat4 grass = glm::mat4(1.0f);
+	CalculateTransform(grass, glm::vec3(0.0f, 0.0f, -0.65f), glm::vec3(0.0f, 0.0f, 1.0f), glm::radians(0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+
+	gl::DepthFunc(gl::FUNC_LESS);
+	gl::Enable(gl::TEST_BLEND);
+	gl::BlendFunc(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA);
+	gl::BlendFuncSeperate(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA, 1.0f, 0.0f);
 
 	while (gl::PollEvents())
 	{
@@ -160,18 +119,25 @@ void Program::Run()
 			camera.ProcessInput();
 		
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
-		gl::BindVertexArray(dragon.vao);
+		cube.Bind();
+		basicShader.Bind();
+		basicShader.SetProjView(camera.ProjView());
+		basicShader.SetTransform(containerTransform);
+		gl::SetUniformFloat(uv_multiplierLoc, 1.0f);
+		gl::BindTexture2D(texture1, 0, samplerLoc);
+		cube.Draw();
 
-		phongShader.Bind(2, lights, phongMaterial, camera.ProjView(), camera.GetPosition());
-		phongShader.BindTransform(dragon.transform);
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, dragon.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
-		//for light
-		gl::BindVertexArray(cube.vao);
-		gl::BindProgram(lightProgram);
-		gl::SetUniformMat4(lightProjViewLoc, camera.ProjView(), false);
-		gl::SetUniformMat4(lightTransformLoc, cube.transform, false);
-		gl::SetUniformVec3(lightColorLoc, lights[1].color);
-		gl::DrawIndexed(gl::DRAW_MODE_TRIANGLES, cube.indiceCount, gl::DATA_TYPE_UNSIGNED_INT, 0);
+		gl::SetUniformFloat(uv_multiplierLoc, 10.0f);
+		basicShader.SetProjView(camera.ProjView());
+		basicShader.SetTransform(ground);
+		gl::BindTexture2D(texture2, 0, samplerLoc);
+		cube.Draw();
+
+		quadShader.Bind();
+		quadShader.SetProjView(camera.ProjView());
+		quadShader.SetTransform(grass);
+		gl::BindTexture2D(texture3, 0, grassSamplerLoc);
+		gl::DrawArrays(gl::DRAW_MODE_TRIANGLE_STRIP, 0, 4);
 		//ui
 		gl::UIBegin();
 		ImGui::Begin("Settings");
@@ -182,12 +148,11 @@ void Program::Run()
 			gl::PolygonMode(gl::FACE_FRONT_AND_BACK, polygonModes[polygonMode]);
 		}
 		ImGui::Text("Camera Position: %f, %f, %f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
-		ImGui::Separator();
-		LightUI();		
-		ImGui::Separator();
-		MateriaUI();
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
 	}
+	gl::DeleteTexture(texture1);
+	gl::DeleteTexture(texture2);
+	gl::DeleteTexture(texture3);
 }

@@ -19,3 +19,5 @@
 ![Assimp](Screenshot/Assimp.png)
 ### 6. Directional and Point Light
 ![DSLight](Screenshot/DSLight.png)
+### 7. Blending (Semi-Transparent Grass)
+![DSLight](Screenshot/Semi-TransparentGrass.png)

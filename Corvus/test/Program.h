@@ -19,58 +19,5 @@ private :
 
 	Camera camera;
 	SDL_bool relative = SDL_TRUE;
-	uint32 cubeVao = 0, dragonVao = 0, dragonVbo = 0, cubeVbo = 0, dragonEbo = 0, cubeEbo = 0;
-
-private :
-	void CreateCube();
-	struct Object
-	{
-		uint32 vao = 0;
-		uint32 vbo = 0;
-		uint32 ebo = 0;
-
-		uint32 indiceCount = 0;
-
-		glm::mat4 transform = glm::mat4(1.0f);
-
-		Object() = default;
-		~Object() = default;
-
-		inline void Create(int32 verticesSize, const void* vertices, int32 indicesSize, uint32* indices, int32 layoutCount, gl::LayoutElement* layouts)
-		{
-			vao = gl::CreateVertexArray();
-			gl::BindVertexArray(vao);
-
-			vbo = gl::CreateStaticVertexBuffer(verticesSize, vertices);
-			ebo = gl::CreateStaticIndexBuffer(indicesSize, indices);
-			indiceCount = (indicesSize / sizeof(uint32));
-
-			gl::BindLayoutElements(layoutCount, layouts);
-			gl::BindVertexArray(0);
-		}
-		inline void Destroy()
-		{
-			gl::DeleteVertexArray(vao);
-			gl::DeleteBuffer(vbo);
-			gl::DeleteBuffer(ebo);
-		}
-	};
-	void LightUI();
-	void MateriaUI();
-	Object dragon;
-	Object cube;
-
-	PhongLight lights[2];
-	cstring const lightTypes[2] = { "SUN", "POINT" };
-	int32 currentLightItem = 0;
-
-	PhongMaterial phongMaterial = {};
-	PhongShader phongShader = {};
-	int32 shininespow = 1;
-	
-	uint32 lightProgram = 0;
-	uint32 lightTransformLoc = 0;
-	uint32 lightColorLoc = 0;
-	uint32 lightProjViewLoc = 0;
 };
 

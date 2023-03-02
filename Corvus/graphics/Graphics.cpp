@@ -221,6 +221,35 @@ namespace Corvus::gl
 	{
 		glFrontFace(bit);
 	}
+	void DepthMask(bool mask)
+	{
+		glDepthMask(mask);
+	}
+	void DepthFunc(FUNC func)
+	{
+		glDepthFunc(func);
+	}
+	void StencilMask(uint32 mask)
+	{
+		glStencilMask(mask);
+	}
+	void StencilFunc(FUNC func, int32 ref, uint32 mask)
+	{
+		glStencilFunc(GL_EQUAL, ref, mask);
+	}
+	void StencilOp(STENCIL_OP sfail, STENCIL_OP dpfail, STENCIL_OP dppass)
+	{
+		glStencilOp(sfail, dpfail, dppass);
+	}
+	void BlendFunc(SOURCE_RGB source, DEST_RGB blend)
+	{
+		glBlendFunc(source, blend);
+	}
+	void BlendFuncSeperate(SOURCE_RGB source, DEST_RGB blend, uint32 sfactor, uint32 dfactor)
+	{
+		glBlendFuncSeparate(source, blend, sfactor, dfactor);
+	}
+
 	void DrawArrays(DRAW_MODE mode, int32 first, int32 count)
 	{
 		glDrawArrays(mode, first, count);
