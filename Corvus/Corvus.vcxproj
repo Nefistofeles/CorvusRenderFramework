@@ -169,6 +169,7 @@
     <ClCompile Include="test\Program.cpp" />
     <ClCompile Include="test\ScreenBuffer.cpp" />
     <ClCompile Include="test\Shader.cpp" />
+    <ClCompile Include="test\Skybox.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graphics\ObjectLoader.h" />
@@ -194,6 +195,7 @@
     <ClInclude Include="test\Program.h" />
     <ClInclude Include="test\ScreenBuffer.h" />
     <ClInclude Include="test\Shader.h" />
+    <ClInclude Include="test\Skybox.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

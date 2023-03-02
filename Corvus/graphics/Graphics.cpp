@@ -466,10 +466,10 @@ namespace Corvus::gl
 		glUniformMatrix4fv(location, 1, normalized, glm::value_ptr(data));
 	}
 
-	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params)
+	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params, bool flipVertical)
 	{
 		uint32 id;
-		stbi_set_flip_vertically_on_load(true);
+		stbi_set_flip_vertically_on_load(flipVertical);
 
 		int32 nrChannels, width, height;
 		uint8* data = stbi_load(path, &width, &height, &nrChannels, STBI_rgb_alpha);
@@ -494,8 +494,9 @@ namespace Corvus::gl
 		glBindTexture(target, 0);
 		return id;
 	}
-	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params)
+	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params, bool flipVertical)
 	{
+		stbi_set_flip_vertically_on_load(flipVertical);
 		uint32 id;
 		glGenTextures(1, &id);
 		glBindTexture(target, id);
@@ -511,13 +512,64 @@ namespace Corvus::gl
 
 		return id;
 	}
-	uint32 CreateTexture2D(cstring path, TextureParameter params)
+	uint32 CreateTexture2D(cstring path, TextureParameter params, bool flipVertical)
 	{
 		return CreateTexture(path, TEXTURE_TYPE_2D, params);
+	}
+	uint32 CreateTextureCubeMap(cstring* paths, TextureParameter params, bool flipVertical)
+	{
+		stbi_set_flip_vertically_on_load(flipVertical);
+		uint32 id;
+		glGenTextures(1, &id);
+		gl::BindTexture(gl::TEXTURE_TYPE_CUBE_MAP, id);
+		int32 width = 0, height = 0, nrChannels = 0;
+		for (uint32 i = 0; i < 6; i++)
+		{
+			uint8* data = stbi_load(paths[i], &width, &height, &nrChannels, STBI_rgb);
+			NASSERT(data == nullptr, "texture load failed ", paths[i]);
+			glTexImage2D(
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, gl::TEXTURE_FORMAT_RGB, width, height, 0, gl::TEXTURE_FORMAT_RGB, gl::DATA_TYPE_UNSIGNED_BYTE, data
+			);
+			stbi_image_free(data);
+			glTexParameteri(TEXTURE_TYPE_CUBE_MAP, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MIN_FILTER, params.filterMin);
+			glTexParameteri(TEXTURE_TYPE_CUBE_MAP, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MAG_FILTER, params.filterMag);
+
+			glTexParameteri(TEXTURE_TYPE_CUBE_MAP, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_R, params.wrap_r);
+			glTexParameteri(TEXTURE_TYPE_CUBE_MAP, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_S, params.wrap_s);
+			glTexParameteri(TEXTURE_TYPE_CUBE_MAP, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_T, params.wrap_t);
+		}
+		return id;
+	}
+	void BindTextureCubeMap(const uint32& id)
+	{
+		gl::BindTexture(gl::TEXTURE_TYPE_CUBE_MAP, id);
+	}
+	void gl::BindTextureCubeMap(const uint32& id, const uint32& active)
+	{
+		BindTextureCubeMap(id);
+		gl::ActivateTexture(active);
+	}
+	void gl::BindTextureCubeMap(const uint32& id, const uint32& active, const uint32& location)
+	{
+		BindTextureCubeMap(id);
+		gl::ActivateTexture(active);
+		gl::SetUniformInt(location, active);
 	}
 	void BindTexture(TEXTURE_TYPE target, const uint32& id)
 	{
 		glBindTexture(target, id);
+	}
+	void gl::BindTexture(TEXTURE_TYPE target, const uint32& id, const uint32& active)
+	{
+		gl::BindTexture(target, id);
+		gl::ActivateTexture(active);
+	}
+	void gl::BindTexture(TEXTURE_TYPE target, const uint32& id, const uint32& active, const uint32& location)
+	{
+		gl::BindTexture(target, id);
+		gl::ActivateTexture(active);
+		gl::SetUniformInt(location, active);
 	}
 	void BindTexture2D(const uint32& id)
 	{

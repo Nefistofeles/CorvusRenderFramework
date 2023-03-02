@@ -295,13 +295,19 @@ namespace Corvus::gl
 		{
 		}
 	};
-	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params);
-	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params);
-	uint32 CreateTexture2D(cstring path, TextureParameter params);
+	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params, bool flipVertical = true);
+	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params, bool flipVertical = true);
+	uint32 CreateTexture2D(cstring path, TextureParameter params, bool flipVertical = true);
+	uint32 CreateTextureCubeMap(cstring* paths, TextureParameter params, bool flipVertical = true);
 	void BindTexture(TEXTURE_TYPE target, const uint32& id);
+	void BindTexture(TEXTURE_TYPE target, const uint32& id, const uint32& active);
+	void BindTexture(TEXTURE_TYPE target, const uint32& id, const uint32& active, const uint32& location);
 	void BindTexture2D(const uint32& id);
 	void BindTexture2D(const uint32& id, const uint32& active);
 	void BindTexture2D(const uint32& id, const uint32& active, const uint32& location);
+	void BindTextureCubeMap(const uint32& id);
+	void BindTextureCubeMap(const uint32& id, const uint32& active);
+	void BindTextureCubeMap(const uint32& id, const uint32& active, const uint32& location);
 	void DeleteTexture(uint32& id);
 	void ActivateTexture(const int32& i);
 }

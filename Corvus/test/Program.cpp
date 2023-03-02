@@ -3,6 +3,7 @@
 #include "Mesh.h"
 #include "Shader.h"
 #include "ScreenBuffer.h"
+#include "Skybox.h"
 
 float32 vertices[] = {
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
@@ -44,6 +45,7 @@ uint32 indices[] =
 	16, 17, 19, 19, 17, 18,
 	20, 21, 23, 23, 21, 22
 };
+
 Program::Program()
 {
 	gl::Init(1366, 768, "Corvus");
@@ -106,10 +108,18 @@ void Program::Run()
 	gl::DepthFunc(gl::FUNC_LESS);
 	gl::Enable(gl::TEST_BLEND);
 	gl::BlendFunc(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA);
-	gl::BlendFuncSeperate(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA, 1.0f, 0.0f);
+	gl::BlendFuncSeperate(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA, 1, 0);
 
-	ScreenBuffer screenBuffer(1366, 768);
-	bool cullFaceEnable = true;
+	//ScreenBuffer screenBuffer(1366, 768);
+
+	SkyboxTexture skyboxTex;
+	skyboxTex.right	= "resources/textures/skybox/day/right.jpg";
+	skyboxTex.left	= "resources/textures/skybox/day/left.jpg";
+	skyboxTex.top	= "resources/textures/skybox/day/top.jpg";
+	skyboxTex.bottom= "resources/textures/skybox/day/bottom.jpg";
+	skyboxTex.front	= "resources/textures/skybox/day/front.jpg";
+	skyboxTex.back	= "resources/textures/skybox/day/back.jpg";
+	Skybox skybox(skyboxTex);
 
 	while (gl::PollEvents())
 	{
@@ -122,7 +132,7 @@ void Program::Run()
 		if(relative)
 			camera.ProcessInput();
 		
-		screenBuffer.Start();
+		//screenBuffer.Start();
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
 		cube.Bind();
 		basicShader.Bind();
@@ -131,7 +141,7 @@ void Program::Run()
 		gl::SetUniformFloat(uv_multiplierLoc, 1.0f);
 		gl::BindTexture2D(texture1, 0, samplerLoc);
 		cube.Draw();
-
+		
 		gl::SetUniformFloat(uv_multiplierLoc, 10.0f);
 		basicShader.SetProjView(camera.ProjView());
 		basicShader.SetTransform(ground);
@@ -143,26 +153,17 @@ void Program::Run()
 		quadShader.SetTransform(grass);
 		gl::BindTexture2D(texture3, 0, grassSamplerLoc);
 		gl::DrawArrays(gl::DRAW_MODE_TRIANGLE_STRIP, 0, 4);
-		screenBuffer.End();
+		skybox.Bind();
+		skybox.SetProjView(camera.Proj() * glm::mat4(glm::mat3(camera.View())));
+		skybox.Draw();
+		//screenBuffer.End();
 
-		screenBuffer.Draw(backgroundColor);
+		//screenBuffer.Draw(backgroundColor);
 		//ui
+
 		gl::UIBegin();
 		ImGui::Begin("Settings");
 		ImGui::Text("FPS: %f", io.Framerate);
-		if (ImGui::Checkbox("Enable Cull Face", &cullFaceEnable))
-		{
-			if(cullFaceEnable)
-				gl::Enable(gl::TEST_CULL_FACE);
-			else
-				gl::Disable(gl::TEST_CULL_FACE);
-		}
-		ImGui::Separator();
-		if (ImGui::ListBox("Polygon Mode", &polygonMode, polygonModeNames, _countof(polygonModes)))
-		{
-			gl::PolygonMode(gl::FACE_FRONT_AND_BACK, polygonModes[polygonMode]);
-		}
-		ImGui::Text("Camera Position: %f, %f, %f", camera.GetPosition().x, camera.GetPosition().y, camera.GetPosition().z);
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
