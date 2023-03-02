@@ -134,8 +134,21 @@ namespace Corvus::gl
 		DEST_RGB_ONE_MINUS_DST_COLOR = GL_ONE_MINUS_DST_COLOR,
 		DEST_RGB_ONE_MINUS_SRC1_ALPHA = GL_ONE_MINUS_SRC1_ALPHA,
 		DEST_RGB_ONE_MINUS_SRC1_COLOR = GL_ONE_MINUS_SRC1_COLOR,
-		DEST_RGB_ONE_MINUS_SRC_ALPHA = GL_ONE_MINUS_SRC_ALPHA,
+		DEST_RGB_ONE_MINUS_SRC_ALPHA = GL_ONE_MINUS_SRC_ALPHA,		
 		DEST_RGB_ONE_MINUS_SRC_COLOR = GL_ONE_MINUS_SRC_COLOR,
+	};
+	enum ATTACHMENT
+	{
+		ATTACHMENT_COLOR0 = GL_COLOR_ATTACHMENT0,
+		ATTACHMENT_DEPTH = GL_DEPTH_ATTACHMENT,
+		ATTACHMENT_STENCIL = GL_STENCIL_ATTACHMENT,
+		ATTACHMENT_DEPTH_STENCIL = GL_DEPTH_STENCIL_ATTACHMENT
+	};
+	enum ATTACHMENT_DATA_TYPE
+	{
+		ATTACHMENT_DATA_TYPE_UNSIGNED_INT_24_8 = GL_UNSIGNED_INT_24_8,
+		ATTACHMENT_DATA_TYPE_DEPTH24_STENCIL8 = GL_DEPTH24_STENCIL8,
+		ATTACHMENT_DATA_TYPE_DEPTH32F_STENCIL8 = GL_DEPTH32F_STENCIL8,
 	};
 	void BlendFunc(SOURCE_RGB source, DEST_RGB blend);
 	void BlendFuncSeperate(SOURCE_RGB source, DEST_RGB blend, uint32 sfactor = 0, uint32 dfactor = 1);
@@ -170,7 +183,9 @@ namespace Corvus::gl
 	enum BUFFER_TARGET
 	{
 		BUFFER_TARGET_VERTEX = GL_ARRAY_BUFFER,
-		BUFFER_TARGET_INDEX = GL_ELEMENT_ARRAY_BUFFER
+		BUFFER_TARGET_INDEX = GL_ELEMENT_ARRAY_BUFFER,
+		BUFFER_TARGET_FRAMEBUFFER = GL_FRAMEBUFFER,
+		BUFFER_TARGET_RENDERBUFFER = GL_RENDERBUFFER,
 	};
 	enum BUFFER_USAGE
 	{
@@ -186,6 +201,17 @@ namespace Corvus::gl
 	void BindVertexBuffer(const uint32& id);
 	void BindIndexBuffer(const uint32& id);
 	void DeleteBuffer(uint32& id);
+
+	uint32 CreateFrameBuffer();
+	void BindFrameBuffer(const uint32& fbo);
+	void DeleteFrameBuffer(uint32& fbo);
+	bool CheckFrameBufferCompleted();
+	void SetFrameBufferTexture2D(ATTACHMENT attachment, const uint32& texture);
+	void SetFrameBufferRenderBuffer(ATTACHMENT attachment, const uint32& rbo);
+	uint32 CreateRenderBuffer();
+	void BindRenderBuffer(const uint32& rbo);
+	void DeleteRenderBuffer(uint32& rbo);
+	void SetRenderBufferStorage(ATTACHMENT_DATA_TYPE dataType, int32 width, int32 height);
 
 	enum SHADER_TYPE
 	{
@@ -270,6 +296,7 @@ namespace Corvus::gl
 		}
 	};
 	uint32 CreateTexture(cstring path, TEXTURE_TYPE target, TextureParameter params);
+	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params);
 	uint32 CreateTexture2D(cstring path, TextureParameter params);
 	void BindTexture(TEXTURE_TYPE target, const uint32& id);
 	void BindTexture2D(const uint32& id);

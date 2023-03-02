@@ -167,6 +167,7 @@
     <ClCompile Include="test\Mesh.cpp" />
     <ClCompile Include="test\PhongShader.cpp" />
     <ClCompile Include="test\Program.cpp" />
+    <ClCompile Include="test\ScreenBuffer.cpp" />
     <ClCompile Include="test\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -191,6 +192,7 @@
     <ClInclude Include="test\Mesh.h" />
     <ClInclude Include="test\PhongShader.h" />
     <ClInclude Include="test\Program.h" />
+    <ClInclude Include="test\ScreenBuffer.h" />
     <ClInclude Include="test\Shader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

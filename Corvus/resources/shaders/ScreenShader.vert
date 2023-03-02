@@ -2,9 +2,6 @@
 
 out vec2 uv ;
 
-uniform mat4 projView ;
-uniform mat4 transform ;
-
 void main()
 {
 	vec2 vertices[6];
@@ -19,6 +16,6 @@ void main()
 	uvs[2] = vec2(0.0, 1.0);
 	uvs[3] = vec2(1.0, 1.0);
 
-	gl_Position = projView * transform * vec4(vertices[gl_VertexID], 0.0, 1.0);
+	gl_Position = vec4(vertices[gl_VertexID], 0.0, 1.0);
 	uv = uvs[gl_VertexID];
 }

@@ -20,4 +20,6 @@
 ### 6. Directional and Point Light
 ![DSLight](Screenshot/DSLight.png)
 ### 7. Blending (Semi-Transparent Grass)
-![DSLight](Screenshot/Semi-TransparentGrass.png)
+![Blending](Screenshot/Semi-TransparentGrass.png)
+### 8. FrameBuffer
+![FrameBuffer](Screenshot/FrameBuffer.png)

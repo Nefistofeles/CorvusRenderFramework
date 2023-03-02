@@ -11,6 +11,6 @@ void main()
 	if(tex.a < 0.1)
 		discard ;
 	else
-		outColor = vec4(tex.rgb, 0.5);
+		outColor = vec4(tex);
 
 }

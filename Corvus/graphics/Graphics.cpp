@@ -330,6 +330,52 @@ namespace Corvus::gl
 	{
 		glDeleteBuffers(1, &id);
 	}
+	uint32 CreateFrameBuffer()
+	{
+		uint32 fbo;
+		glCreateFramebuffers(1, &fbo);
+		return fbo;
+	}
+	void BindFrameBuffer(const uint32& fbo)
+	{
+		glBindFramebuffer(BUFFER_TARGET_FRAMEBUFFER, fbo);
+	}
+	void DeleteFrameBuffer(uint32& fbo)
+	{
+		glDeleteFramebuffers(1, &fbo);
+		fbo = 0;
+	}
+	bool CheckFrameBufferCompleted()
+	{
+		return glCheckFramebufferStatus(BUFFER_TARGET_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+	}
+	void SetFrameBufferTexture2D(ATTACHMENT attachment, const uint32& texture)
+	{
+		glFramebufferTexture2D(BUFFER_TARGET_FRAMEBUFFER, attachment, TEXTURE_TYPE_2D, texture, 0);
+	}
+	void SetFrameBufferRenderBuffer(ATTACHMENT attachment, const uint32& rbo)
+	{
+		glFramebufferRenderbuffer(BUFFER_TARGET_FRAMEBUFFER, attachment, BUFFER_TARGET_RENDERBUFFER, rbo);
+	}
+	uint32 CreateRenderBuffer()
+	{
+		uint32 rbo;
+		glCreateRenderbuffers(1, &rbo);
+		return rbo;
+	}
+	void BindRenderBuffer(const uint32& rbo)
+	{
+		glBindRenderbuffer(BUFFER_TARGET_RENDERBUFFER, rbo);
+	}
+	void DeleteRenderBuffer(uint32& rbo)
+	{
+		glDeleteRenderbuffers(1, &rbo);
+		rbo = 0;
+	}
+	void SetRenderBufferStorage(ATTACHMENT_DATA_TYPE dataType, int32 width, int32 height)
+	{
+		glRenderbufferStorage(BUFFER_TARGET_RENDERBUFFER, dataType, width, height);
+	}
 	uint32 CreateShader(cstring path, SHADER_TYPE type)
 	{
 		std::string code;
@@ -446,6 +492,23 @@ namespace Corvus::gl
 		glGenerateMipmap(target);
 		stbi_image_free(data);
 		glBindTexture(target, 0);
+		return id;
+	}
+	uint32 CreateTexture(TEXTURE_TYPE target, TEXTURE_FORMAT format, int32 width, int32 height, TextureParameter params)
+	{
+		uint32 id;
+		glGenTextures(1, &id);
+		glBindTexture(target, id);
+
+		glTexParameteri(target, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MIN_FILTER, params.filterMin);
+		glTexParameteri(target, TEXTURE_FILTER_PNAME::TEXTURE_FILTER_MAG_FILTER, params.filterMag);
+
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_R, params.wrap_r);
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_S, params.wrap_s);
+		glTexParameteri(target, TEXTURE_WRAP_PNAME::TEXTURE_WRAP_T, params.wrap_t);
+
+		glTexImage2D(target, 0, TEXTURE_FORMAT_RGBA, width, height, 0, TEXTURE_FORMAT_RGBA, DATA_TYPE_UNSIGNED_BYTE, nullptr);
+
 		return id;
 	}
 	uint32 CreateTexture2D(cstring path, TextureParameter params)

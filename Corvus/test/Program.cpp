@@ -2,6 +2,7 @@
 #include <random>
 #include "Mesh.h"
 #include "Shader.h"
+#include "ScreenBuffer.h"
 
 float32 vertices[] = {
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
@@ -64,7 +65,7 @@ Program::~Program()
 
 void Program::Init()
 {
-	gl::ClearColor(0.2f, 0.3f, 0.4f, 1.0f);
+	gl::ClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
 	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
 	camera.SetPosition({ -10.0f, 14.0f, 14.0f });
 }
@@ -100,12 +101,15 @@ void Program::Run()
 	CalculateTransform(ground, glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::radians(0.0f), glm::vec3(15.0f, 0.1f, 15.0f));
 	
 	glm::mat4 grass = glm::mat4(1.0f);
-	CalculateTransform(grass, glm::vec3(0.0f, 0.0f, -0.65f), glm::vec3(0.0f, 0.0f, 1.0f), glm::radians(0.0f), glm::vec3(1.0f, 1.0f, 1.0f));
+	CalculateTransform(grass, glm::vec3(0.0f, 0.0f, -0.65f), glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(180.0f), glm::vec3(1.0f, 1.0f, 1.0f));
 
 	gl::DepthFunc(gl::FUNC_LESS);
 	gl::Enable(gl::TEST_BLEND);
 	gl::BlendFunc(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA);
 	gl::BlendFuncSeperate(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA, 1.0f, 0.0f);
+
+	ScreenBuffer screenBuffer(1366, 768);
+	bool cullFaceEnable = true;
 
 	while (gl::PollEvents())
 	{
@@ -118,6 +122,7 @@ void Program::Run()
 		if(relative)
 			camera.ProcessInput();
 		
+		screenBuffer.Start();
 		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
 		cube.Bind();
 		basicShader.Bind();
@@ -138,10 +143,20 @@ void Program::Run()
 		quadShader.SetTransform(grass);
 		gl::BindTexture2D(texture3, 0, grassSamplerLoc);
 		gl::DrawArrays(gl::DRAW_MODE_TRIANGLE_STRIP, 0, 4);
+		screenBuffer.End();
+
+		screenBuffer.Draw(backgroundColor);
 		//ui
 		gl::UIBegin();
 		ImGui::Begin("Settings");
 		ImGui::Text("FPS: %f", io.Framerate);
+		if (ImGui::Checkbox("Enable Cull Face", &cullFaceEnable))
+		{
+			if(cullFaceEnable)
+				gl::Enable(gl::TEST_CULL_FACE);
+			else
+				gl::Disable(gl::TEST_CULL_FACE);
+		}
 		ImGui::Separator();
 		if (ImGui::ListBox("Polygon Mode", &polygonMode, polygonModeNames, _countof(polygonModes)))
 		{
