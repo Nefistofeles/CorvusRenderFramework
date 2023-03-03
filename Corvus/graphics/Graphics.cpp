@@ -258,6 +258,10 @@ namespace Corvus::gl
 	{
 		glDrawElements(mode, count, dataType, indices);
 	}
+	void DrawInstanced(DRAW_MODE mode, int32 first, int32 count, int32 instanceCount)
+	{
+		glDrawArraysInstanced(mode, first, count, instanceCount);
+	}
 	uint32 CreateVertexArray()
 	{
 		uint32 id;
@@ -293,9 +297,50 @@ namespace Corvus::gl
 	{
 		return CreateBuffer(BUFFER_TARGET_VERTEX, size, data, BUFFER_USAGE_STATIC);
 	}
+	uint32 gl::CreateDynamicVertexBuffer(int64 size)
+	{
+		return CreateBuffer(BUFFER_TARGET_VERTEX, size, nullptr, BUFFER_USAGE_DYNAMIC);
+	}
+	uint32 gl::CreateStreamVertexBuffer(int64 size, const void* data)
+	{
+		return CreateBuffer(BUFFER_TARGET_VERTEX, size, data, BUFFER_USAGE_STREAM);
+	}
 	uint32 CreateStaticIndexBuffer(int64 size, uint32* data)
 	{
 		return CreateBuffer(BUFFER_TARGET_INDEX, size, data, BUFFER_USAGE_STATIC);
+	}
+	uint32 gl::CreateDynamicIndexBuffer(int64 size)
+	{
+		return CreateBuffer(BUFFER_TARGET_INDEX, size, nullptr, BUFFER_USAGE_DYNAMIC);
+	}
+	uint32 gl::CreateStreamIndexBuffer(int64 size, const void* data)
+	{
+		return CreateBuffer(BUFFER_TARGET_INDEX, size, data, BUFFER_USAGE_STREAM);
+	}
+	void* Map(BUFFER_TARGET target, ACCESS_FLAG flag)
+	{
+		void* ptr = glMapBuffer(target, flag);
+		return ptr;
+	}
+	void UnMap(BUFFER_TARGET target)
+	{
+		glUnmapBuffer(target);
+	}
+	void* MapVertexBuffer(ACCESS_FLAG flag)
+	{
+		return Map(gl::BUFFER_TARGET_VERTEX, flag);
+	}
+	void UnMapVertexBuffer()
+	{
+		return UnMap(gl::BUFFER_TARGET_VERTEX);
+	}
+	void* MapIndexBuffer(ACCESS_FLAG flag)
+	{
+		return Map(gl::BUFFER_TARGET_INDEX, flag);
+	}
+	void UnMapIndexBuffer()
+	{
+		return UnMap(gl::BUFFER_TARGET_INDEX);
 	}
 	void BindLayoutElements(uint32 count, LayoutElement* elements)
 	{
@@ -312,6 +357,7 @@ namespace Corvus::gl
 			glVertexAttribPointer(data.index, data.count, data.type, data.normalized, stride, reinterpret_cast<const void*>(ptr));
 			ptr += size;
 			glEnableVertexAttribArray(data.index);
+			glVertexAttribDivisor(i, data.frequency);
 		}
 	}
 	void BindBuffer(BUFFER_TARGET target, const uint32& id)

@@ -4,7 +4,8 @@
 #include "Shader.h"
 #include "ScreenBuffer.h"
 #include "Skybox.h"
-
+#include "BatchRenderer.h"
+/*
 float32 vertices[] = {
 	-0.5f, 0.5f,-0.5f,	  1.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //0
 	 0.5f, 0.5f,-0.5f,	  0.0f, 1.0f,	 0.0f, 0.0f,-1.0f, //1
@@ -45,19 +46,15 @@ uint32 indices[] =
 	16, 17, 19, 19, 17, 18,
 	20, 21, 23, 23, 21, 22
 };
-
+*/
 Program::Program()
 {
 	gl::Init(1366, 768, "Corvus");
-	gl::RelativeMouse(relative);
-	gl::WindowMouseGrab(relative);
 	gl::Vsync(1);
 
-	gl::PolygonMode(gl::FACE_FRONT_AND_BACK, polygonModes[polygonMode]);
-
-	gl::Enable(gl::TEST_DEPTH);
-	gl::Enable(gl::TEST_CULL_FACE);
-	gl::CullFace(gl::FACE_BACK);
+	//gl::Enable(gl::TEST_DEPTH);
+	//gl::Enable(gl::TEST_CULL_FACE);
+	//gl::CullFace(gl::FACE_BACK);
 }
 
 Program::~Program()
@@ -68,107 +65,90 @@ Program::~Program()
 void Program::Init()
 {
 	gl::ClearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
-	camera.Perspective(glm::radians(45.0f), 1.77f, 0.1f, 1000.0f);
-	camera.SetPosition({ -10.0f, 14.0f, 14.0f });
+}
+
+void Program::CalculateBoundary(glm::vec2& dir, const glm::vec2& pos, const float32& radius)
+{
+	float32 minx = pos.x - radius;
+	float32 maxx = pos.x + radius;
+	float32 miny = pos.y - radius;
+	float32 maxy = pos.y + radius;
+
+	if (minx < -w || maxx > w)
+	{
+		dir.x *= -1;
+	}
+	if (miny < -h || maxy > h)
+	{
+		dir.y *= -1;
+	}
 }
 void Program::Run()
 {
 	ImGuiIO& io = ImGui::GetIO();
-	gl::LayoutElement elements[] =
-	{
-		{0, 3, gl::DATA_TYPE_FLOAT, false},
-		{1, 2, gl::DATA_TYPE_FLOAT, false},
-		{2, 3, gl::DATA_TYPE_FLOAT, false},
-	};
-	StaticMesh cube(_countof(elements), elements, sizeof(vertices), vertices, sizeof(indices), indices);
-	Shader basicShader("resources/shaders/BasicShader.vert", "resources/shaders/BasicShader.frag");
-	uint32 uv_multiplierLoc = basicShader.GetUniformLoc("uv_multiplier");
-	uint32 samplerLoc = basicShader.GetUniformLoc("sampler");
 
-	gl::TextureParameter params =
-	{
-		gl::TEXTURE_FILTER_LINEAR, gl::TEXTURE_FILTER_LINEAR,
-		gl::TEXTURE_WRAP_REPEAT,gl::TEXTURE_WRAP_REPEAT,gl::TEXTURE_WRAP_REPEAT
-	};
-	uint32 texture1 = gl::CreateTexture2D("resources/textures/container.png", params);
-	uint32 texture2 = gl::CreateTexture2D("resources/textures/wall.jpg", params);
-	uint32 texture3 = gl::CreateTexture2D("resources/textures/grass.png", params);
-
-	Shader quadShader("resources/shaders/Quad.vert", "resources/shaders/Quad.frag");
-	uint32 grassSamplerLoc = quadShader.GetUniformLoc("sampler");
-	glm::mat4 containerTransform = glm::mat4(1.0f);
-	CalculateTransform(containerTransform, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), 0.0f, glm::vec3(1.0f, 1.0f, 1.0f));
-
-	glm::mat4 ground = glm::mat4(1.0f);
-	CalculateTransform(ground, glm::vec3(0.0f, -0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::radians(0.0f), glm::vec3(15.0f, 0.1f, 15.0f));
-	
-	glm::mat4 grass = glm::mat4(1.0f);
-	CalculateTransform(grass, glm::vec3(0.0f, 0.0f, -0.65f), glm::vec3(0.0f, 1.0f, 0.0f), glm::radians(180.0f), glm::vec3(1.0f, 1.0f, 1.0f));
-
-	gl::DepthFunc(gl::FUNC_LESS);
+	//gl::DepthFunc(gl::FUNC_LESS);
 	gl::Enable(gl::TEST_BLEND);
 	gl::BlendFunc(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA);
 	gl::BlendFuncSeperate(gl::SOURCE_RGB_SRC_ALPHA, gl::DEST_RGB_ONE_MINUS_SRC_ALPHA, 1, 0);
+	uint32 maxQuadSize = 1'000'000;
+	// batch size effect performance
+	//if object draw 50'000 batch size could be nearly ~100
+	//but object size is increase like 1m, batch size also should be high value
+	uint32 batchSize = 4000;
+	UniquePtr<BatchRenderer> pBatchRenderer = new BatchRenderer(maxQuadSize, batchSize);
+	samples.Resize(maxQuadSize);
 
-	//ScreenBuffer screenBuffer(1366, 768);
+	float32 w = 136.6f / 2.0f;
+	float32 h = 76.8f / 2.0f;
+	glm::mat4 projView = glm::ortho(-w, w, -h, h, -1.0f, 1.0f);
 
-	SkyboxTexture skyboxTex;
-	skyboxTex.right	= "resources/textures/skybox/day/right.jpg";
-	skyboxTex.left	= "resources/textures/skybox/day/left.jpg";
-	skyboxTex.top	= "resources/textures/skybox/day/top.jpg";
-	skyboxTex.bottom= "resources/textures/skybox/day/bottom.jpg";
-	skyboxTex.front	= "resources/textures/skybox/day/front.jpg";
-	skyboxTex.back	= "resources/textures/skybox/day/back.jpg";
-	Skybox skybox(skyboxTex);
+	std::mt19937 gen;
+	//std::uniform_real_distribution<float32> scale_distr(0.05f, 0.3f);
+	std::uniform_real_distribution<float32> scale_distr(0.3f, 1.0f);
+	std::uniform_real_distribution<float32> dir_distr(-1.0f, 1.0f);
+	std::uniform_real_distribution<float32> speed_distr(-10.0f, 10.0f);
 
 	while (gl::PollEvents())
-	{
-		if (ImGui::IsKeyPressed(ImGuiKey_Escape))
+	{	
+		gl::Clear(gl::CLEAR_BIT_COLOR);
+		float32 mousePosX = 2.0f * (io.MousePos.x / io.DisplaySize.x) - 1.0f;
+		float32 mousePosY = -2.0f * (io.MousePos.y / io.DisplaySize.y) + 1.0f;
+
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && samples.AvaliableSize() <= maxQuadSize)
 		{
-			relative == SDL_TRUE ? relative = SDL_FALSE : relative = SDL_TRUE;
-			gl::RelativeMouse(relative);
-			gl::WindowMouseGrab(relative);
+			for (int32 i = 0; i < 1000; i++)
+			{
+				SampleData data;
+				data.pos = glm::vec2(mousePosX * w, mousePosY * h);
+				data.rot = 0.0f;
+				data.scale = glm::vec2(scale_distr(gen));
+				data.dir = glm::normalize(glm::vec2(dir_distr(gen), dir_distr(gen)));
+				data.speed = speed_distr(gen);
+				samples.Emplace(data);
+			}
+		}		
+		pBatchRenderer->SetViewProj(projView);
+		pBatchRenderer->Begin();
+		for (int32 i = 0; i < samples.AvaliableSize(); i++)
+		{
+			SampleData& sample = samples[i];
+			CalculateBoundary(sample.dir, sample.pos, sample.scale.x);
+			sample.pos += sample.dir * sample.speed * io.DeltaTime;
+			pBatchRenderer->Draw(sample.pos, sample.rot, sample.scale);
 		}
-		if(relative)
-			camera.ProcessInput();
-		
-		//screenBuffer.Start();
-		gl::Clear(gl::CLEAR_BIT_COLOR_DEPTH);
-		cube.Bind();
-		basicShader.Bind();
-		basicShader.SetProjView(camera.ProjView());
-		basicShader.SetTransform(containerTransform);
-		gl::SetUniformFloat(uv_multiplierLoc, 1.0f);
-		gl::BindTexture2D(texture1, 0, samplerLoc);
-		cube.Draw();
-		
-		gl::SetUniformFloat(uv_multiplierLoc, 10.0f);
-		basicShader.SetProjView(camera.ProjView());
-		basicShader.SetTransform(ground);
-		gl::BindTexture2D(texture2, 0, samplerLoc);
-		cube.Draw();
-
-		quadShader.Bind();
-		quadShader.SetProjView(camera.ProjView());
-		quadShader.SetTransform(grass);
-		gl::BindTexture2D(texture3, 0, grassSamplerLoc);
-		gl::DrawArrays(gl::DRAW_MODE_TRIANGLE_STRIP, 0, 4);
-		skybox.Bind();
-		skybox.SetProjView(camera.Proj() * glm::mat4(glm::mat3(camera.View())));
-		skybox.Draw();
-		//screenBuffer.End();
-
-		//screenBuffer.Draw(backgroundColor);
-		//ui
-
+		pBatchRenderer->End();
 		gl::UIBegin();
 		ImGui::Begin("Settings");
 		ImGui::Text("FPS: %f", io.Framerate);
+		ImGui::Text("Mouse Position: %f, %f", mousePosX * w, mousePosY * h);
+		ImGui::Text("Object Size %d", samples.AvaliableSize());
+		if (ImGui::Button("Clear"))
+		{
+			samples.Reset();
+		}
 		ImGui::End();
 		gl::UIEnd();
 		gl::SwapBuffers();
 	}
-	gl::DeleteTexture(texture1);
-	gl::DeleteTexture(texture2);
-	gl::DeleteTexture(texture3);
 }

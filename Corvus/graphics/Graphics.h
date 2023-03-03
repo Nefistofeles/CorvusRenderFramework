@@ -165,20 +165,26 @@ namespace Corvus::gl
 	};
 	void DrawArrays(DRAW_MODE mode, int32 first, int32 count);
 	void DrawIndexed(DRAW_MODE mode, int32 count, DATA_TYPE dataType, const void* indices);
-
+	void DrawInstanced(DRAW_MODE mode, int32 first, int32 count, int32 instanceCount);
 	uint32 CreateVertexArray();
 	void BindVertexArray(const uint32& id);
 	void DeleteVertexArray(uint32& id);
 	void EnableVertexAttrib(uint32 vao, uint32 index);
 	void DisableVertexAttrib(uint32 vao, uint32 index);
+	enum INPUT_ELEMENT
+	{
+		INPUT_ELEMENT_FREQUENCY_PER_VERTEX = 0,
+		INPUT_ELEMENT_FREQUENCY_PER_INSTANCE = 1
+	};
 	struct LayoutElement
 	{
 		uint32 index;
 		uint32 count;
 		DATA_TYPE type;
 		uint8 normalized;
-		LayoutElement() : index(0), count(0), type(DATA_TYPE_FLOAT), normalized(false) {}
-		LayoutElement(uint32 index, uint32 count, DATA_TYPE type, uint8 normalized) : index(index), count(count), type(type), normalized(normalized) {}
+		INPUT_ELEMENT frequency;
+		LayoutElement() : index(0), count(0), type(DATA_TYPE_FLOAT), normalized(false), frequency(INPUT_ELEMENT::INPUT_ELEMENT_FREQUENCY_PER_VERTEX){}
+		LayoutElement(uint32 index, uint32 count, DATA_TYPE type, uint8 normalized, INPUT_ELEMENT frequency = INPUT_ELEMENT_FREQUENCY_PER_VERTEX) : index(index), count(count), type(type), normalized(normalized), frequency(frequency){}
 	};
 	enum BUFFER_TARGET
 	{
@@ -193,9 +199,25 @@ namespace Corvus::gl
 		BUFFER_USAGE_DYNAMIC = GL_DYNAMIC_DRAW,
 		BUFFER_USAGE_STREAM = GL_STREAM_DRAW,
 	};
+	enum ACCESS_FLAG
+	{
+		ACCESS_FLAG_WRITE = GL_WRITE_ONLY,
+		ACCESS_FLAG_READ = GL_READ_ONLY,
+		ACCESS_FLAG_READ_WRITE = GL_READ_WRITE
+	};
 	uint32 CreateBuffer(BUFFER_TARGET target, int64 size, const void* data, BUFFER_USAGE usage);
 	uint32 CreateStaticVertexBuffer(int64 size, const void* data);
+	uint32 CreateDynamicVertexBuffer(int64 size);
+	uint32 CreateStreamVertexBuffer(int64 size, const void* data);
 	uint32 CreateStaticIndexBuffer(int64 size, uint32* data);
+	uint32 CreateDynamicIndexBuffer(int64 size);
+	uint32 CreateStreamIndexBuffer(int64 size, const void* data);
+	void* Map(BUFFER_TARGET target, ACCESS_FLAG flag);
+	void UnMap(BUFFER_TARGET target);
+	void* MapVertexBuffer(ACCESS_FLAG flag);
+	void UnMapVertexBuffer();
+	void* MapIndexBuffer(ACCESS_FLAG flag);
+	void UnMapIndexBuffer();
 	void BindLayoutElements(uint32 count, LayoutElement* elements);
 	void BindBuffer(BUFFER_TARGET target, const uint32& id);
 	void BindVertexBuffer(const uint32& id);

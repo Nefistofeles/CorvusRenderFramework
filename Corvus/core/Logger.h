@@ -22,5 +22,6 @@ inline void Log(int color, Args && ...args)
 #else
 #define PRINT_ERROR(message, ...) {}   
 #define PRINT_DEBUG(message, ...) {}
+#define PRINT_WARNING(message, ...){}
 #define PRINT_INFO(message, ...)  {}
 #endif

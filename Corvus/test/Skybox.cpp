@@ -50,7 +50,7 @@ Skybox::Skybox(const SkyboxTexture& texturePaths)
 	vao = gl::CreateVertexArray();
 	gl::BindVertexArray(vao);
 	vbo = gl::CreateStaticVertexBuffer(sizeof(skyboxVertices), skyboxVertices);
-    gl::LayoutElement layout = { 0, 3, gl::DATA_TYPE_FLOAT, false };
+    gl::LayoutElement layout = { 0, 3, gl::DATA_TYPE_FLOAT, false};
     gl::BindLayoutElements(1, &layout);
 	gl::BindVertexArray(0);
 	gl::TextureParameter params =

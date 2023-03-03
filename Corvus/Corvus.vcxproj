@@ -150,6 +150,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="graphics\ObjectLoader.cpp" />
+    <ClCompile Include="test\BatchRenderer.cpp" />
     <ClCompile Include="test\Camera.cpp" />
     <ClCompile Include="core\Array.cpp" />
     <ClCompile Include="core\UniquePtr.cpp" />
@@ -173,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="graphics\ObjectLoader.h" />
+    <ClInclude Include="test\BatchRenderer.h" />
     <ClInclude Include="test\Camera.h" />
     <ClInclude Include="core\Array.h" />
     <ClInclude Include="core\Core.h" />
